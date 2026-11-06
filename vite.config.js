@@ -23,7 +23,7 @@ function pageTitle(file, fallback) {
   try {
     const html = readFileSync(file, 'utf8');
     const m = html.match(/<title>([^<]*)<\/title>/i);
-    if (m) return m[1].trim();
+    if (m && m[1].trim()) return m[1].trim(); // empty <title> falls back to the filename
   } catch {
     /* fall through to fallback */
   }
@@ -166,10 +166,12 @@ function gardenPlugin() {
       if (m) {
         const page = m[1]; // e.g. "games/number-guesser"
         const target = page === 'index' ? BASE : `${BASE}#/${page}`;
+        // Only redirect when served over http(s) — opened from disk (file://)
+        // the /garden/ prefix would resolve to a meaningless file:/// URL.
         tags.push({
           tag: 'script',
           injectTo: 'head',
-          children: `if(window.top===window)location.replace(${JSON.stringify(target)})`,
+          children: `if(location.protocol.indexOf('http')===0&&window.top===window)location.replace(${JSON.stringify(target)})`,
         });
       }
       return tags;

@@ -223,6 +223,7 @@
     }
   }
   indexTree(GARDEN.tree);
+  const knownPaths = new Set(Object.keys(titles));
 
   const collapsed = new Set(JSON.parse(localStorage.getItem('garden.explorer.collapsed') || '[]'));
   const saveCollapsed = () => localStorage.setItem('garden.explorer.collapsed', JSON.stringify([...collapsed]));
@@ -300,7 +301,7 @@
 
   let current = null;
   function navigate(path, fromHash) {
-    if (!titles[path]) path = 'index.html'; // unknown route → home
+    if (!knownPaths.has(path)) path = 'index.html'; // unknown route → home
     if (path === current) return;
     current = path;
     frame.src = GARDEN.base + 'draft/' + path;
