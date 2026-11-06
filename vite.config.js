@@ -145,36 +145,69 @@ function loadHomeCards() {
   return [];
 }
 
+// Every page with its last-modified time, most recent first — powers the
+// homepage's "Recently edited" box.
+function loadRecentPages() {
+  const pages = collectPages(scanDraft());
+  const entries = [];
+  for (const [path, node] of pages) {
+    try {
+      const ts = statSync(resolve(draftDir, path)).mtime.getTime();
+      entries.push({ path, name: node.title || node.name, time: formatStamp(new Date(ts)), ts });
+    } catch {
+      /* unreadable file — skip it */
+    }
+  }
+  entries.sort((a, b) => b.ts - a.ts);
+  return entries.map(({ path, name, time }) => ({ path, name, time }));
+}
+
 // ===== Build plugin =====
-// Injects the tree + home cards into every built page as window.GARDEN, and
-// makes draft pages redirect into the shell when opened outside the iframe.
+// Injects the tree + home cards into every built page as window.GARDEN, makes
+// draft pages redirect into the shell when opened outside the iframe, and
+// stamps each draft page's meta line with the file's last-modified time.
+
+function formatStamp(date) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(date.getDate())}:${p(date.getMonth() + 1)}:${p(date.getFullYear() % 100)} ${p(date.getHours())}:${p(date.getMinutes())}`;
+}
+
+// Replace the content of the page's meta div with the generated timestamp,
+// injecting a meta div after the heading if the page doesn't have one.
+function stampMeta(html, page) {
+  let mtime;
+  try {
+    mtime = statSync(resolve(draftDir, page + '.html')).mtime;
+  } catch {
+    return html;
+  }
+  const stamp = `<div class="meta">(UPDATED ${formatStamp(mtime)})</div>`;
+  if (/<div class="meta">[\s\S]*?<\/div>/i.test(html)) {
+    return html.replace(/<div class="meta">[\s\S]*?<\/div>/i, stamp);
+  }
+  return html.replace(/<\/h1>/i, `</h1>\n${stamp}`);
+}
 
 function gardenPlugin() {
   return {
     name: 'garden-meta',
-    transformIndexHtml(_html, ctx) {
+    transformIndexHtml(html, ctx) {
       const id = String(ctx.filename || ctx.path || '').replace(/\\/g, '/');
-      const payload = { base: BASE, tree: loadExplorerTree(), home: loadHomeCards() };
-      const tags = [
-        {
-          tag: 'script',
-          injectTo: 'head',
-          children: `window.GARDEN=${JSON.stringify(payload).replace(/</g, '\\u003c')}`,
-        },
-      ];
+      const payload = { base: BASE, tree: loadExplorerTree(), home: loadHomeCards(), recent: loadRecentPages() };
+      let inject = `<script>window.GARDEN=${JSON.stringify(payload).replace(/</g, '\\u003c')}</script>`;
+
       const m = id.match(/\/draft\/(.*)\.html$/);
+      let out = html;
       if (m) {
         const page = m[1]; // e.g. "games/number-guesser"
         const target = page === 'index' ? BASE : `${BASE}#/${page}`;
         // Only redirect when served over http(s) — opened from disk (file://)
         // the /garden/ prefix would resolve to a meaningless file:/// URL.
-        tags.push({
-          tag: 'script',
-          injectTo: 'head',
-          children: `if(location.protocol.indexOf('http')===0&&window.top===window)location.replace(${JSON.stringify(target)})`,
-        });
+        inject += `<script>if(location.protocol.indexOf('http')===0&&window.top===window)location.replace(${JSON.stringify(target)})</script>`;
+        out = stampMeta(out, page);
       }
-      return tags;
+      const withHead = out.replace(/<\/head>/i, `${inject}\n</head>`);
+      return withHead === out ? inject + out : withHead;
     },
   };
 }
@@ -216,7 +249,7 @@ function pageTemplate(title) {
     '<link rel="stylesheet" href="/src/content.css">\n' +
     '<script type="module" src="/src/links.js"></scr' + 'ipt>\n' +
     '</head>\n<body>\n' +
-    `<h1>${safeTitle}</h1>\n<div class="meta">drafted ${new Date().toISOString().slice(0, 10)}</div>\n\n` +
+    `<h1>${safeTitle}</h1>\n\n` +
     '<p>Start writing.</p>\n\n</body>\n</html>\n'
   );
 }

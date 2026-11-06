@@ -10,13 +10,21 @@
 <body>
 
 <h1>Tairusen's Garden</h1>
-<div class="meta">A quiet corner of the web. Square, flat, and dense.</div>
+<p class="meta">A quiet corner of the web. Square, flat, and dense.</p>
 
-<div class="home-grid" id="home-grid"></div>
+<div class="home-grid" id="home-grid">
+
+  <div class="recent-box">
+    <h3>Recently edited</h3>
+    <ul class="recent-list" id="recent-list"></ul>
+  </div>
+
+</div>
 
 <script>
-  // The four featured boxes come from draft/home.json, injected at build
-  // time as window.GARDEN.home (see vite.config.js).
+  // The four featured boxes come from draft/home.json, and the "Recently
+  // edited" list from the build-time timestamp scan — both injected as
+  // window.GARDEN (see vite.config.js).
   const grid = document.getElementById('home-grid');
   for (const card of window.GARDEN.home) {
     const el = document.createElement('div');
@@ -32,6 +40,21 @@
       top.location.hash = hash;
     });
     grid.appendChild(el);
+  }
+
+  const recentList = document.getElementById('recent-list');
+  for (const item of window.GARDEN.recent || []) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = '#/' + item.path.replace(/\.html$/, '');
+    link.textContent = item.name;
+    const dots = document.createElement('span');
+    dots.className = 'dots';
+    const date = document.createElement('span');
+    date.className = 'date';
+    date.textContent = item.time;
+    li.append(link, dots, date);
+    recentList.appendChild(li);
   }
 </script>
 

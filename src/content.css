@@ -54,6 +54,7 @@ code {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   max-width: 760px;
+  margin: 0 auto; /* center the block within the content pane */
 }
 .card {
   background: var(--bg-secondary);
@@ -73,6 +74,51 @@ code {
   padding-bottom: 5px;
 }
 .card p { font-size: 12px; color: var(--text-secondary); margin-bottom: 0; }
+
+/* ===== Recently edited box ===== */
+.recent-box {
+  grid-column: 1 / -1; /* spans the full width, above the 2x2 cards */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+}
+.recent-box h3 {
+  font-size: 13px;
+  font-weight: bold;
+  color: #9cdcfe;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 5px;
+}
+.recent-list {
+  list-style: none;
+  max-height: 170px;
+  overflow-y: auto;
+}
+.recent-list li {
+  display: flex;
+  align-items: baseline;
+  padding: 2px 0;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+.recent-list a {
+  color: #3794ff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.recent-list a:hover { text-decoration: underline; }
+.recent-list .dots {
+  flex: 1;
+  min-width: 12px;
+  margin: 0 6px;
+  border-bottom: 1px dotted var(--text-disabled);
+  transform: translateY(-3px);
+}
+.recent-list .date {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
 
 /* ===== Game panels ===== */
 .game-box {

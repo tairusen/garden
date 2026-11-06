@@ -58,20 +58,21 @@
   }
   .titlebar .title { font-size: 12px; }
   .titlebar-btn {
-    width: 24px; height: 18px;
+    height: 18px;
     margin-right: 8px;
     background: var(--bg-input);
     border: 1px solid var(--border-dark);
     color: var(--text-primary);
     font-family: inherit;
-    font-size: 11px;
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    padding: 0;
+    padding: 8px;
+    padding-bottom: 12px;
   }
   .titlebar-btn:hover { border-color: var(--accent); }
   .titlebar-btn:active { background: var(--bg-tertiary); }
@@ -178,15 +179,9 @@
 <body>
 <div class="app">
 
-  <!-- Title Bar -->
-  <div class="titlebar">
-    <button class="titlebar-btn" id="explorer-toggle" aria-label="Toggle explorer" title="Toggle explorer (Ctrl+B)">☰</button>
-    <div class="app-icon"></div>
-    <div class="title">Tairusen's Garden</div>
-  </div>
-
   <!-- Toolbar / Breadcrumb -->
   <div class="toolbar">
+    <button class="titlebar-btn" id="explorer-toggle" aria-label="Toggle explorer" title="Toggle explorer (Ctrl+B)">≡</button> 
     <div class="breadcrumb" id="crumb"></div>
   </div>
 
