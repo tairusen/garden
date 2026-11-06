@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Editor — Tairusen's Garden</title>
+<style>
+  :root {
+    --bg-primary: #1e1e1e; --bg-secondary: #252526; --bg-tertiary: #2d2d30;
+    --bg-input: #333337; --border: #3c3c3c; --border-dark: #464646;
+    --text-primary: #f1f1f1; --text-secondary: #a2a4a5;
+    --accent: #0e70c0; --selected: #094771;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
+  html, body {
+    height: 100%; background: var(--bg-primary); color: var(--text-primary);
+    font-family: Tahoma, "Segoe UI", sans-serif; font-size: 13px;
+    display: flex; flex-direction: column;
+  }
+  .titlebar {
+    display: flex; align-items: center; background: #3c3c3c;
+    border-bottom: 1px solid var(--border-dark); height: 28px; flex-shrink: 0;
+    font-size: 12px; padding: 0 8px; user-select: none;
+  }
+  .toolbar {
+    display: flex; gap: 4px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); padding: 4px 6px; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .toolbar button {
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    color: var(--text-primary); padding: 3px 10px;
+    font-family: inherit; font-size: 12px; cursor: pointer;
+  }
+  .toolbar button:hover { border-color: var(--accent); }
+  .toolbar button:active { background: var(--bg-input); }
+  .toolbar .sep { width: 1px; background: var(--border); margin: 0 4px; }
+  .toolbar input {
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-primary); font-family: inherit; font-size: 12px; padding: 3px 6px; width: 160px;
+  }
+  #editor {
+    flex: 1; overflow-y: auto; padding: 24px 32px;
+    outline: none; max-width: 780px;
+  }
+  #editor h1 { font-size: 20px; font-weight: normal; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin: 0 0 12px; }
+  #editor h2 { font-size: 15px; font-weight: normal; color: #9cdcfe; margin: 16px 0 6px; }
+  #editor h3 { font-size: 13px; font-weight: bold; color: #9cdcfe; margin: 12px 0 4px; }
+  #editor p { line-height: 1.55; color: #d4d4d4; margin-bottom: 10px; }
+  #editor img { max-width: 100%; border: 1px solid var(--border); }
+  #editor a { color: #3794ff; }
+  #editor:focus { box-shadow: inset 0 0 0 1px var(--selected); }
+  .statusbar {
+    background: var(--accent); color: #fff; font-size: 11px;
+    height: 22px; line-height: 22px; padding: 0 10px; flex-shrink: 0; user-select: none;
+  }
+  ::-webkit-scrollbar { width: 14px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-input); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="titlebar">Tairusen's Garden — Editor</div>
+
+<div class="toolbar">
+  <button data-cmd="formatBlock" data-val="h1" title="Heading 1">H1</button>
+  <button data-cmd="formatBlock" data-val="h2" title="Heading 2">H2</button>
+  <button data-cmd="formatBlock" data-val="h3" title="Heading 3">H3</button>
+  <button data-cmd="formatBlock" data-val="p" title="Paragraph">¶</button>
+  <div class="sep"></div>
+  <button data-cmd="bold"><b>B</b></button>
+  <button data-cmd="italic"><i>I</i></button>
+  <div class="sep"></div>
+  <button id="btn-link" title="Insert link">Link</button>
+  <button id="btn-img" title="Insert image">Image</button>
+  <button id="btn-unlink" title="Remove link">Unlink</button>
+  <div class="sep"></div>
+  <input id="filename" value="untitled.html" spellcheck="false">
+  <button id="btn-save" style="border-color: var(--accent);">Export HTML</button>
+  <button id="btn-load" title="Open an existing .html page to edit it">Open...</button>
+  <input type="file" id="file-in" accept=".html" hidden>
+</div>
+
+<div id="editor" contenteditable="true" spellcheck="true">
+  <h1>Untitled</h1>
+  <p>Start writing. Select text and use the toolbar above.</p>
+</div>
+
+<div class="statusbar" id="status">Ready</div>
+
+<script>
+const editor  = document.getElementById('editor');
+const status  = document.getElementById('status');
+
+// ===== Toolbar commands =====
+document.querySelectorAll('.toolbar button[data-cmd]').forEach(btn => {
+  btn.addEventListener('mousedown', e => e.preventDefault()); // keep text selection
+  btn.addEventListener('click', () => {
+    document.execCommand(btn.dataset.cmd, false, btn.dataset.val || null);
+    editor.focus();
+  });
+});
+
+// ===== Links =====
+document.getElementById('btn-link').addEventListener('mousedown', e => e.preventDefault());
+document.getElementById('btn-link').addEventListener('click', () => {
+  const url = prompt('Link URL (relative .html for internal pages, https:// for external):');
+  if (url) document.execCommand('createLink', false, url);
+  editor.focus();
+});
+
+document.getElementById('btn-unlink').addEventListener('mousedown', e => e.preventDefault());
+document.getElementById('btn-unlink').addEventListener('click', () => {
+  document.execCommand('unlink');
+  editor.focus();
+});
+
+// ===== Images =====
+document.getElementById('btn-img').addEventListener('click', () => {
+  const src = prompt('Image path (relative to content/, e.g. images/fern.jpg):');
+  if (!src) return;
+  const alt = prompt('Alt text (optional):') || '';
+  editor.focus();
+  document.execCommand('insertImage', false, src);
+  // set alt on the just-inserted image
+  const imgs = editor.querySelectorAll('img');
+  const img = imgs[imgs.length - 1];
+  if (img) img.alt = alt;
+});
+
+// ===== Paste: strip everything except allowed tags =====
+editor.addEventListener('paste', e => {
+  e.preventDefault();
+  const html = e.clipboardData.getData('text/html');
+  const text = e.clipboardData.getData('text/plain');
+  if (html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    // keep only allowed tags
+    const allowed = new Set(['H1','H2','H3','P','B','STRONG','I','EM','A','IMG','BR','DIV']);
+    tpl.content.querySelectorAll('*').forEach(el => {
+      if (!allowed.has(el.tagName)) {
+        el.replaceWith(...el.childNodes);
+      } else {
+        [...el.attributes].forEach(a => {
+          const keep = (el.tagName === 'A' && a.name === 'href') ||
+                       (el.tagName === 'IMG' && (a.name === 'src' || a.name === 'alt'));
+          if (!keep) el.removeAttribute(a.name);
+        });
+      }
+    });
+    document.execCommand('insertHTML', false, tpl.innerHTML);
+  } else {
+    document.execCommand('insertText', false, text);
+  }
+});
+
+// ===== Export =====
+document.getElementById('btn-save').addEventListener('click', () => {
+  let name = document.getElementById('filename').value.trim();
+  if (!name.endsWith('.html')) name += '.html';
+
+  // Clean up: drop empty paragraphs, merge stray nesting from execCommand
+  editor.querySelectorAll('p, h1, h2, h3').forEach(el => {
+    if (!el.textContent.trim() && !el.querySelector('img')) el.remove();
+  });
+
+  const inner = editor.innerHTML;
+  const doc = '<!-- Generated by Tairusen\'s Garden editor -->\n' + inner + '\n';
+
+  const blob = new Blob([doc], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  status.textContent = 'Exported ' + name + ' — put it in your content/ folder';
+});
+
+// ===== Open existing page for editing =====
+document.getElementById('btn-load').addEventListener('click', () => {
+  document.getElementById('file-in').click();
+});
+document.getElementById('file-in').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('filename').value = file.name;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = reader.result;
+    // If the file has <body>, extract it; otherwise use as-is
+    const body = tpl.content.querySelector('body');
+    editor.innerHTML = body ? body.innerHTML : tpl.innerHTML;
+    status.textContent = 'Loaded ' + file.name;
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>

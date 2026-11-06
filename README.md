@@ -33,14 +33,13 @@ vite.config.js          scans draft/ at build time:
 
 ```sh
 npm install       # once
-npm run dev       # local preview with hot reload (open the /garden/ URL it prints)
+npm run dev       # site + editor workbench (open the /garden/ URL it prints)
 npm run build     # build to dist/ without deploying
 npm run preview   # serve the built dist/ locally
 ```
 
-Note: in `npm run dev`, newly added files appear in the explorer after a
-restart (Ctrl+C, `npm run dev` again). The published site always rebuilds
-from scratch, so deploys always see everything.
+The explorer tree and home grid are recomputed on every request in dev, so
+file changes show up on a plain browser refresh — no restarts needed.
 
 ## Adding a page
 
@@ -93,6 +92,26 @@ The explorer is fully under your control. `page` paths are relative to
   warning, so typos are easy to spot.
 - The explorer pane hides/shows via the ☰ button in the title bar or
   `Ctrl+B` (`Cmd+B` on Mac). The state is remembered per browser.
+
+## The editor (`editor/` — local only, gitignored)
+
+While `npm run dev` is running, open **http://localhost:5173/garden/editor**
+(or `/editor` without the prefix) for the garden workbench:
+
+- **File tree** of `draft/` — click to open; ↻ refreshes; **New…** / **Delete**
+  create and remove pages
+- **WYSIWYG pane** — toolbar formatting, sanitized pasting, `Ctrl+S` saves
+  straight to disk (GitHub Desktop sees the change immediately)
+- **Link** — picker of your garden pages (`#/path` links) or external URLs
+- **Image** — uploads into `draft/images/` and inserts the correct relative path
+- **Preview tab** — live view of the page as it will be published
+- **explorer.json / home.json tabs** — edit the configs in place (validated
+  before saving)
+
+The editor is a local-side tool: the folder is gitignored and never
+committed, and its file API exists only in the dev server (`apply: 'serve'`)
+— the deployed site contains no trace of it. Deleting `editor/` is always
+safe; the site builds and deploys without it.
 
 ## The `example/` folder
 

@@ -167,24 +167,6 @@
     min-height: 0;
   }
 
-  /* ===== Status Bar ===== */
-  .statusbar {
-    display: flex;
-    background: var(--accent);
-    color: #fff;
-    font-size: 11px;
-    height: 22px;
-    flex-shrink: 0;
-    user-select: none;
-  }
-  .statusbar .cell {
-    padding: 0 10px;
-    line-height: 22px;
-    border-right: 1px solid rgba(0,0,0,0.2);
-    white-space: nowrap;
-  }
-  .statusbar .spacer { flex: 1; }
-
   /* ===== Scrollbars ===== */
   ::-webkit-scrollbar { width: 14px; height: 14px; }
   ::-webkit-scrollbar-track { background: var(--bg-secondary); }
@@ -220,15 +202,6 @@
     <!-- Content -->
     <div class="content-wrap">
       <iframe id="page-frame" title="Garden content"></iframe>
-
-      <!-- Status Bar -->
-      <div class="statusbar">
-        <div class="cell" id="status-page">home</div>
-        <div class="cell" id="status-mode">Ready</div>
-        <div class="spacer"></div>
-        <div class="cell">UTF-8</div>
-        <div class="cell">Static</div>
-      </div>
     </div>
 
   </div>
@@ -240,7 +213,6 @@
   const treeEl   = document.getElementById('tree');
   const crumbEl  = document.getElementById('crumb');
   const frame    = document.getElementById('page-frame');
-  const statusEl = document.getElementById('status-page');
 
   // Flatten the tree into { path -> title } and keep folder collapse state.
   const titles = {};
@@ -333,7 +305,6 @@
     current = path;
     frame.src = GARDEN.base + 'draft/' + path;
     document.title = (titles[path] || 'Home') + " — Tairusen's Garden";
-    statusEl.textContent = 'draft/' + path;
     renderCrumb(path);
     setActive(path);
     if (!fromHash && location.hash !== pathToHash(path)) {

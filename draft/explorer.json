@@ -4,6 +4,12 @@
     { "page": "introduction.html" },
     { "page": "ai-policy.html" },
     { "page": "contact.html" },
+    { "name": "blogs",
+      "label": "Blogs",
+      "items": [
+        { "page": "blogs/blog_01.html" }
+      ]
+    },
     {
       "name": "games",
       "label": "Games",
