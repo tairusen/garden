@@ -57,6 +57,26 @@
     border: 1px solid var(--border-dark);
   }
   .titlebar .title { font-size: 12px; }
+  .titlebar-btn {
+    width: 24px; height: 18px;
+    margin-right: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-dark);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .titlebar-btn:hover { border-color: var(--accent); }
+  .titlebar-btn:active { background: var(--bg-tertiary); }
+
+  .app.explorer-hidden .sidebar { display: none; }
 
   /* ===== Toolbar / Breadcrumb ===== */
   .toolbar {
@@ -178,6 +198,7 @@
 
   <!-- Title Bar -->
   <div class="titlebar">
+    <button class="titlebar-btn" id="explorer-toggle" aria-label="Toggle explorer" title="Toggle explorer (Ctrl+B)">☰</button>
     <div class="app-icon"></div>
     <div class="title">Tairusen's Garden</div>
   </div>
@@ -235,9 +256,10 @@
   const saveCollapsed = () => localStorage.setItem('garden.explorer.collapsed', JSON.stringify([...collapsed]));
 
   // ===== Explorer tree =====
-  function fileIcon(path) {
-    if (path === 'index.html') return '<span class="icon home">⌂</span>';
-    if (path.startsWith('games/')) return '<span class="icon game">▶</span>';
+  function fileIcon(path, iconOverride) {
+    const kind = iconOverride || (path === 'index.html' ? 'home' : path.startsWith('games/') ? 'game' : 'file');
+    if (kind === 'home') return '<span class="icon home">⌂</span>';
+    if (kind === 'game') return '<span class="icon game">▶</span>';
     return '<span class="icon">▬</span>';
   }
 
@@ -264,7 +286,7 @@
         const row = document.createElement('div');
         row.className = 'row';
         row.dataset.path = item.path;
-        row.innerHTML = fileIcon(item.path) + '<span class="label">' + escapeHtml(item.title || item.name) + '</span>';
+        row.innerHTML = fileIcon(item.path, item.icon) + '<span class="label">' + escapeHtml(item.title || item.name) + '</span>';
         row.addEventListener('click', () => navigate(item.path));
         container.appendChild(row);
       }
@@ -320,6 +342,28 @@
   }
 
   window.addEventListener('hashchange', () => navigate(hashToPath(), true));
+
+  // ===== Explorer visibility (hamburger button / Ctrl+B) =====
+  const appEl = document.querySelector('.app');
+  const toggleBtn = document.getElementById('explorer-toggle');
+
+  function setExplorerVisible(visible) {
+    appEl.classList.toggle('explorer-hidden', !visible);
+    localStorage.setItem('garden.explorer.visible', visible ? '1' : '0');
+  }
+  function toggleExplorer() {
+    setExplorerVisible(appEl.classList.contains('explorer-hidden'));
+  }
+  toggleBtn.addEventListener('click', toggleExplorer);
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      toggleExplorer();
+    }
+  });
+  if (localStorage.getItem('garden.explorer.visible') === '0') {
+    appEl.classList.add('explorer-hidden');
+  }
 
   // ===== Init =====
   buildTree(GARDEN.tree, treeEl);

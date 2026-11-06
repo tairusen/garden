@@ -1,0 +1,15 @@
+{
+  "items": [
+    { "page": "index.html", "label": "Home" },
+    { "page": "introduction.html" },
+    { "page": "ai-policy.html" },
+    { "page": "contact.html" },
+    {
+      "name": "games",
+      "label": "Games",
+      "items": [
+        { "page": "games/number-guesser.html" }
+      ]
+    }
+  ]
+}

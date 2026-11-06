@@ -8,8 +8,8 @@ const draftDir = resolve(root, 'draft');
 const BASE = '/garden/';
 
 // ===== Content scan =====
-// Every .html file under draft/ becomes a page. The folder structure becomes
-// the explorer tree; each page's <title> becomes its label in the tree.
+// Every .html file under draft/ becomes a page. Each page's <title> becomes
+// its default label in the explorer.
 
 function pageTitle(file, fallback) {
   try {
@@ -39,15 +39,96 @@ function scanDraft(dir = draftDir, prefix = '') {
   const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   dirs.sort(byName);
   files.sort(byName);
-  // Pin index.html (the Home page) to the top of its folder.
   files.sort((a, b) => (a.name === 'index' ? -1 : b.name === 'index' ? 1 : 0));
   return [...dirs, ...files];
+}
+
+function collectPages(nodes, map = new Map()) {
+  for (const node of nodes) {
+    if (node.type === 'dir') collectPages(node.children, map);
+    else map.set(node.path, node);
+  }
+  return map;
+}
+
+const diskChildren = scanDraft();
+const diskPages = collectPages(diskChildren);
+
+// ===== Explorer tree =====
+// draft/explorer.json controls what the explorer shows and in what order
+// (folders can be virtual groupings — they don't have to match disk layout).
+// Any page on disk that isn't listed is appended at the end automatically,
+// so newly dropped files never go missing.
+
+function loadExplorerTree() {
+  const autoTree = { type: 'dir', name: 'draft', path: '', children: diskChildren };
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync(resolve(draftDir, 'explorer.json'), 'utf8'));
+  } catch (err) {
+    console.warn(`Could not read draft/explorer.json (${err.message}) — explorer is auto-generated.`);
+    return autoTree;
+  }
+  if (!Array.isArray(raw.items)) {
+    console.warn('draft/explorer.json has no "items" array — explorer is auto-generated.');
+    return autoTree;
+  }
+
+  const listed = new Set(); // pages mentioned in the JSON
+  const takenKeys = new Set(); // unique collapse-state keys for folders
+
+  function normalize(items) {
+    const nodes = [];
+    for (const item of items) {
+      if (item.page) {
+        const disk = diskPages.get(item.page);
+        if (!disk) {
+          console.warn(`explorer.json: no such page "${item.page}" — skipped.`);
+          continue;
+        }
+        listed.add(item.page);
+        nodes.push({
+          type: 'file',
+          name: disk.name,
+          path: disk.path,
+          title: item.label || disk.title,
+          ...(item.icon ? { icon: item.icon } : {}),
+        });
+      } else if (item.name && Array.isArray(item.items)) {
+        let key = item.name;
+        for (let n = 2; takenKeys.has(key); n++) key = `${item.name}#${n}`;
+        takenKeys.add(key);
+        nodes.push({
+          type: 'dir',
+          name: item.label || item.name,
+          path: key, // only used as the collapse-state key
+          children: normalize(item.items),
+        });
+      } else {
+        console.warn(`explorer.json: skipping malformed item ${JSON.stringify(item)}`);
+      }
+    }
+    return nodes;
+  }
+
+  const children = normalize(raw.items);
+  for (const [path, node] of diskPages) {
+    if (!listed.has(path)) children.push(node);
+  }
+  return { type: 'dir', name: 'draft', path: '', children };
 }
 
 function loadHomeCards() {
   try {
     const json = JSON.parse(readFileSync(resolve(draftDir, 'home.json'), 'utf8'));
-    if (Array.isArray(json.cards)) return json.cards;
+    if (Array.isArray(json.cards)) {
+      for (const card of json.cards) {
+        if (card.page && !diskPages.has(card.page)) {
+          console.warn(`home.json: no such page "${card.page}" — card will not navigate.`);
+        }
+      }
+      return json.cards;
+    }
     console.warn('draft/home.json has no "cards" array — home grid will be empty.');
   } catch (err) {
     console.warn(`Could not read draft/home.json (${err.message}) — home grid will be empty.`);
@@ -55,7 +136,7 @@ function loadHomeCards() {
   return [];
 }
 
-const tree = { type: 'dir', name: 'draft', path: '', children: scanDraft() };
+const tree = loadExplorerTree();
 const homeCards = loadHomeCards();
 
 // ===== Build plugin =====
