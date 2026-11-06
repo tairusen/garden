@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home</title>
+<link rel="stylesheet" href="/src/content.css">
+<script type="module" src="/src/links.js"></script>
+</head>
+<body>
+
+<h1>Tairusen's Garden</h1>
+<div class="meta">A quiet corner of the web. Square, flat, and dense.</div>
+
+<div class="home-grid" id="home-grid"></div>
+
+<script>
+  // The four featured boxes come from draft/home.json, injected at build
+  // time as window.GARDEN.home (see vite.config.js).
+  const grid = document.getElementById('home-grid');
+  for (const card of window.GARDEN.home) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    const title = document.createElement('h3');
+    title.textContent = card.title;
+    const blurb = document.createElement('p');
+    blurb.textContent = card.blurb;
+    el.append(title, blurb);
+    el.addEventListener('click', () => {
+      const hash = '#/' + card.page.replace(/\.html$/, '');
+      const top = window.top === window ? window : window.parent;
+      top.location.hash = hash;
+    });
+    grid.appendChild(el);
+  }
+</script>
+
+</body>
+</html>

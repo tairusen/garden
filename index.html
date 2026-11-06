@@ -1,30 +1,329 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Garden</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>" />
-    <link rel="stylesheet" href="/src/style.css" />
-  </head>
-  <body>
-    <main>
-      <h1>🌱 Garden</h1>
-      <p class="muted">A quiet corner of the internet — blog posts and small games, grown over time.</p>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tairusen's Garden</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+<style>
+  :root {
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #252526;
+    --bg-tertiary: #2d2d30;
+    --bg-input: #333337;
+    --border: #3c3c3c;
+    --border-dark: #464646;
+    --text-primary: #f1f1f1;
+    --text-secondary: #a2a4a5;
+    --text-disabled: #656565;
+    --accent: #0e70c0;
+    --selected: #094771;
+    --green: #6a9955;
+  }
 
-      <h2>Blog</h2>
-      <ul>
-        <li><a href="blog/first-post.html">First post — how this garden works</a></li>
-      </ul>
-      <p><a href="blog/">All posts →</a></p>
+  * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
-      <h2>Games</h2>
-      <ul>
-        <li><a href="games/example-game.html">Example game — a tiny click test</a></li>
-      </ul>
-      <p><a href="games/">All games →</a></p>
+  html, body {
+    height: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: Tahoma, "Segoe UI", Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    overflow: hidden;
+  }
 
-      <footer>Grown by hand. <a href="https://github.com/tairusen/garden">Source</a></footer>
-    </main>
-  </body>
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    border: 1px solid var(--border-dark);
+  }
+
+  /* ===== Title Bar ===== */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-dark);
+    height: 28px;
+    flex-shrink: 0;
+    padding: 0 10px;
+    user-select: none;
+  }
+  .titlebar .app-icon {
+    width: 14px; height: 14px;
+    margin-right: 8px;
+    background: var(--accent);
+    border: 1px solid var(--border-dark);
+  }
+  .titlebar .title { font-size: 12px; }
+
+  /* ===== Toolbar / Breadcrumb ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    height: 26px;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+  .breadcrumb { color: var(--text-secondary); font-size: 12px; }
+  .breadcrumb .crumb-link { cursor: pointer; }
+  .breadcrumb .crumb-link:hover { color: var(--text-primary); text-decoration: underline; }
+  .breadcrumb .sep { margin: 0 6px; color: var(--text-disabled); }
+  .breadcrumb .crumb-muted { color: var(--text-disabled); }
+  .breadcrumb .crumb-current { color: var(--text-primary); }
+
+  /* ===== Main Layout ===== */
+  .main { display: flex; flex: 1; min-height: 0; }
+
+  /* ===== Side Pane / Explorer ===== */
+  .sidebar {
+    width: 210px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 4px 0;
+    overflow-y: auto;
+    user-select: none;
+  }
+  .sidebar-header {
+    padding: 4px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    margin: 4px 0 4px 0;
+  }
+
+  .tree { font-size: 13px; }
+  .tree .row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    line-height: 18px;
+    color: var(--text-primary);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .tree .row:hover { background: var(--bg-tertiary); }
+  .tree .row.active {
+    background: var(--selected);
+    color: #fff;
+    border-left-color: var(--accent);
+  }
+  .tree .caret,
+  .tree .icon {
+    width: 13px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-family: monospace;
+    flex-shrink: 0;
+  }
+  .tree .row.active .icon,
+  .tree .row.active .caret { color: #fff; }
+  .tree .icon.home { color: var(--green); }
+  .tree .icon.game { color: #ce9178; }
+  .tree .row.active .icon.game { color: #ffd7c2; }
+  .tree .caret::before { content: '▾'; }
+  .tree-branch.collapsed > .row .caret::before { content: '▸'; }
+  .tree-branch.collapsed > .tree-children { display: none; }
+  .tree-children { padding-left: 14px; }
+  .tree .folder-label { color: var(--text-primary); }
+  .tree-branch.collapsed > .row .folder-label { color: var(--text-secondary); }
+
+  /* ===== Content Pane ===== */
+  .content-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #page-frame {
+    flex: 1;
+    width: 100%;
+    border: 0;
+    background: var(--bg-primary);
+    min-height: 0;
+  }
+
+  /* ===== Status Bar ===== */
+  .statusbar {
+    display: flex;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    height: 22px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .statusbar .cell {
+    padding: 0 10px;
+    line-height: 22px;
+    border-right: 1px solid rgba(0,0,0,0.2);
+    white-space: nowrap;
+  }
+  .statusbar .spacer { flex: 1; }
+
+  /* ===== Scrollbars ===== */
+  ::-webkit-scrollbar { width: 14px; height: 14px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-input); border: 1px solid var(--border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-dark); }
+  ::-webkit-scrollbar-corner { background: var(--bg-secondary); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Title Bar -->
+  <div class="titlebar">
+    <div class="app-icon"></div>
+    <div class="title">Tairusen's Garden</div>
+  </div>
+
+  <!-- Toolbar / Breadcrumb -->
+  <div class="toolbar">
+    <div class="breadcrumb" id="crumb"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Explorer -->
+    <div class="sidebar">
+      <div class="sidebar-header">Explorer</div>
+      <div class="tree" id="tree"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-wrap">
+      <iframe id="page-frame" title="Garden content"></iframe>
+
+      <!-- Status Bar -->
+      <div class="statusbar">
+        <div class="cell" id="status-page">home</div>
+        <div class="cell" id="status-mode">Ready</div>
+        <div class="spacer"></div>
+        <div class="cell">UTF-8</div>
+        <div class="cell">Static</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ===== Data injected at build time (see vite.config.js) =====
+  const GARDEN = window.GARDEN;
+  const treeEl   = document.getElementById('tree');
+  const crumbEl  = document.getElementById('crumb');
+  const frame    = document.getElementById('page-frame');
+  const statusEl = document.getElementById('status-page');
+
+  // Flatten the tree into { path -> title } and keep folder collapse state.
+  const titles = {};
+  function indexTree(node) {
+    for (const item of node.children || []) {
+      if (item.type === 'dir') indexTree(item);
+      else titles[item.path] = item.title;
+    }
+  }
+  indexTree(GARDEN.tree);
+
+  const collapsed = new Set(JSON.parse(localStorage.getItem('garden.explorer.collapsed') || '[]'));
+  const saveCollapsed = () => localStorage.setItem('garden.explorer.collapsed', JSON.stringify([...collapsed]));
+
+  // ===== Explorer tree =====
+  function fileIcon(path) {
+    if (path === 'index.html') return '<span class="icon home">⌂</span>';
+    if (path.startsWith('games/')) return '<span class="icon game">▶</span>';
+    return '<span class="icon">▬</span>';
+  }
+
+  function buildTree(node, container) {
+    for (const item of node.children || []) {
+      if (item.type === 'dir') {
+        const branch = document.createElement('div');
+        branch.className = 'tree-branch' + (collapsed.has(item.path) ? ' collapsed' : '');
+        branch.dataset.branch = item.path;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = '<span class="caret"></span><span class="folder-label">' + escapeHtml(item.name) + '</span>';
+        row.addEventListener('click', () => {
+          branch.classList.toggle('collapsed');
+          branch.classList.contains('collapsed') ? collapsed.add(item.path) : collapsed.delete(item.path);
+          saveCollapsed();
+        });
+        const kids = document.createElement('div');
+        kids.className = 'tree-children';
+        buildTree(item, kids);
+        branch.append(row, kids);
+        container.appendChild(branch);
+      } else {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.dataset.path = item.path;
+        row.innerHTML = fileIcon(item.path) + '<span class="label">' + escapeHtml(item.title || item.name) + '</span>';
+        row.addEventListener('click', () => navigate(item.path));
+        container.appendChild(row);
+      }
+    }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function setActive(path) {
+    treeEl.querySelectorAll('.row[data-path]').forEach(r =>
+      r.classList.toggle('active', r.dataset.path === path));
+  }
+
+  // ===== Breadcrumb =====
+  function renderCrumb(path) {
+    const parts = path.replace(/\.html$/, '').split('/');
+    const last = parts.pop();
+    let html = '<span class="crumb-link" data-goto="index.html">home</span>';
+    for (const p of parts) html += '<span class="sep">›</span><span class="crumb-muted">' + escapeHtml(p) + '</span>';
+    html += '<span class="sep">›</span><span class="crumb-current">' + escapeHtml(titles[path] || last) + '</span>';
+    crumbEl.innerHTML = html;
+  }
+  crumbEl.addEventListener('click', e => {
+    const link = e.target.closest('.crumb-link');
+    if (link) navigate(link.dataset.goto);
+  });
+
+  // ===== Routing: #/<path-without-.html> <-> content pane =====
+  function hashToPath() {
+    const raw = decodeURIComponent(location.hash.replace(/^#\/?/, '')).replace(/\/+$/, '');
+    if (raw === '') return 'index.html';
+    return raw + '.html';
+  }
+  function pathToHash(path) {
+    return path === 'index.html' ? '#/index' : '#/' + path.replace(/\.html$/, '');
+  }
+
+  let current = null;
+  function navigate(path, fromHash) {
+    if (!titles[path]) path = 'index.html'; // unknown route → home
+    if (path === current) return;
+    current = path;
+    frame.src = GARDEN.base + 'draft/' + path;
+    document.title = (titles[path] || 'Home') + " — Tairusen's Garden";
+    statusEl.textContent = 'draft/' + path;
+    renderCrumb(path);
+    setActive(path);
+    if (!fromHash && location.hash !== pathToHash(path)) {
+      location.hash = pathToHash(path);
+    }
+  }
+
+  window.addEventListener('hashchange', () => navigate(hashToPath(), true));
+
+  // ===== Init =====
+  buildTree(GARDEN.tree, treeEl);
+  navigate(hashToPath(), true);
+</script>
+</body>
 </html>

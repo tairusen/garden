@@ -1,0 +1,24 @@
+{
+  "cards": [
+    {
+      "page": "introduction.html",
+      "title": "Introduction",
+      "blurb": "Who I am, what this garden is for, and why it looks like an IDE from 2009."
+    },
+    {
+      "page": "ai-policy.html",
+      "title": "AI Policy",
+      "blurb": "Where and how AI tools were used in making this site, stated plainly."
+    },
+    {
+      "page": "contact.html",
+      "title": "Contact",
+      "blurb": "How to reach me. Plain text, like a README from 2007."
+    },
+    {
+      "page": "games/number-guesser.html",
+      "title": "Number Guesser",
+      "blurb": "A small plain-JS guessing game. No dependencies, no mercy."
+    }
+  ]
+}
