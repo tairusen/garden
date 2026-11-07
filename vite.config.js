@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { execFileSync } from 'node:child_process';
 import {
   mkdirSync,
   readFileSync,
@@ -152,18 +153,64 @@ function loadHomeCards() {
   return [];
 }
 
-// Every page with its last-modified time, most recent first — powers the
+// ===== Timestamps =====
+// True "last edited" times come from git: CI checkouts reset file mtimes to
+// the build moment, so file stamps are useless on the deployed site. Files
+// with uncommitted changes (live local editing) fall back to mtime.
+
+function gitTimes() {
+  const commits = new Map(); // repo-relative path -> { ts, time }
+  const dirty = new Set();
+  try {
+    const log = execFileSync('git', ['log', '--name-only', '--format=%cI', '--', 'draft'],
+      { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 5000 });
+    let iso = null;
+    for (const line of log.split('\n')) {
+      const t = line.trim();
+      if (!t) continue;
+      if (/^\d{4}-\d{2}-\d{2}T/.test(t)) { iso = t; continue; }
+      if (iso && !commits.has(t)) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+        if (m) commits.set(t, { ts: Date.parse(iso), time: `${m[3]}:${m[2]}:${m[1].slice(2)} ${m[4]}:${m[5]}` });
+      }
+    }
+  } catch {
+    /* no git or no history — the mtime fallback covers it */
+  }
+  try {
+    const st = execFileSync('git', ['status', '--porcelain', '--', 'draft'],
+      { cwd: root, encoding: 'utf8', timeout: 5000 });
+    for (const line of st.split('\n')) {
+      const f = line.slice(3).trim();
+      if (f && !f.includes('->')) dirty.add(f);
+    }
+  } catch {
+    /* ignore */
+  }
+  return { commits, dirty };
+}
+
+// Every page with its last-edited time, most recent first — powers the
 // homepage's "Recently edited" box.
 function loadRecentPages() {
   const pages = collectPages(scanDraft());
+  const { commits, dirty } = gitTimes();
   const entries = [];
   for (const [path, node] of pages) {
-    try {
-      const ts = statSync(resolve(draftDir, path)).mtime.getTime();
-      entries.push({ path, name: node.title || node.name, time: formatStamp(new Date(ts)), ts });
-    } catch {
-      /* unreadable file — skip it */
+    const rel = 'draft/' + path;
+    const commit = commits.get(rel);
+    let time, ts;
+    if (commit && !dirty.has(rel)) {
+      ({ ts, time } = commit); // committed: the commit's own local time
+    } else {
+      try {
+        ts = statSync(resolve(draftDir, path)).mtime.getTime();
+      } catch {
+        continue; // unreadable file — skip it
+      }
+      time = formatStamp(new Date(ts)); // uncommitted local edits: live mtime
     }
+    entries.push({ path, name: node.title || node.name, time, ts });
   }
   entries.sort((a, b) => b.ts - a.ts);
   return entries.map(({ path, name, time }) => ({ path, name, time }));
@@ -182,13 +229,20 @@ function formatStamp(date) {
 // Replace the content of the page's meta div with the generated timestamp,
 // injecting a meta div after the heading if the page doesn't have one.
 function stampMeta(html, page) {
-  let mtime;
-  try {
-    mtime = statSync(resolve(draftDir, page + '.html')).mtime;
-  } catch {
-    return html;
+  const rel = 'draft/' + page + '.html';
+  const { commits, dirty } = gitTimes();
+  const commit = commits.get(rel);
+  let time;
+  if (commit && !dirty.has(rel)) {
+    time = commit.time; // committed: the commit's own local time
+  } else {
+    try {
+      time = formatStamp(statSync(resolve(draftDir, page + '.html')).mtime);
+    } catch {
+      return html;
+    }
   }
-  const stamp = `<div class="meta">(UPDATED ${formatStamp(mtime)})</div>`;
+  const stamp = `<div class="meta">(UPDATED ${time})</div>`;
   if (/<div class="meta">[\s\S]*?<\/div>/i.test(html)) {
     return html.replace(/<div class="meta">[\s\S]*?<\/div>/i, stamp);
   }
