@@ -296,7 +296,7 @@ body.low #hurt{animation:lowA 2.4s ease-in-out infinite}
         <div><i>PLASMA</i><b id="srPlasma">×1.00</b></div>
         <div><i>VOID</i><b id="srVoid">×1.0</b></div>
         <div><i>CHAIN</i><b id="srChain">+0.25</b></div>
-        <div><i>DISRUPT</i><b id="srDis">+0</b></div>
+        <div><i>PULL</i><b id="srDis">+0</b></div>
         <div><i>REPAIR</i><b id="srHeal">×1.0</b></div>
         <div><i>SHIELD</i><b id="srShield">×1.0</b></div>
         <div><i>LEECH</i><b id="srLeech">—</b></div>
@@ -316,7 +316,7 @@ body.low #hurt{animation:lowA 2.4s ease-in-out infinite}
     <h1 class="ov-title">NULL<span>HORIZON</span></h1>
     <p class="ov-sub">A roguelike match-3. Something out there is answering your beacon, and it has teeth. Match weapon capsules to fire on it, strip its hull, salvage an upgrade — then meet something worse. Your hull does not regenerate out here.</p>
     <div class="legend">
-      <div class="lg-row"><span class="mini t-plasma"><svg viewBox="0 0 24 24"><use href="#g-plasma"></use></svg></span><b>PLASMA</b><span>raw damage to the hostile</span></div><div class="lg-row"><span class="mini t-aegis"><svg viewBox="0 0 24 24"><use href="#g-aegis"></use></svg></span><b>AEGIS</b><span>raises your shield — absorbs strikes</span></div><div class="lg-row"><span class="mini t-volt"><svg viewBox="0 0 24 24"><use href="#g-volt"></use></svg></span><b>VOLT</b><span>charges the Nova Lance ultimate</span></div><div class="lg-row"><span class="mini t-bio"><svg viewBox="0 0 24 24"><use href="#g-bio"></use></svg></span><b>BIO</b><span>repairs hull</span></div><div class="lg-row"><span class="mini t-void"><svg viewBox="0 0 24 24"><use href="#g-void"></use></svg></span><b>VOID</b><span>chips damage and delays the hostile strike</span></div>
+      <div class="lg-row"><span class="mini t-plasma"><svg viewBox="0 0 24 24"><use href="#g-plasma"></use></svg></span><b>PLASMA</b><span>raw damage to the hostile</span></div><div class="lg-row"><span class="mini t-aegis"><svg viewBox="0 0 24 24"><use href="#g-aegis"></use></svg></span><b>AEGIS</b><span>raises your shield — absorbs strikes</span></div><div class="lg-row"><span class="mini t-volt"><svg viewBox="0 0 24 24"><use href="#g-volt"></use></svg></span><b>VOLT</b><span>charges the Nova Lance ultimate</span></div><div class="lg-row"><span class="mini t-bio"><svg viewBox="0 0 24 24"><use href="#g-bio"></use></svg></span><b>BIO</b><span>repairs hull</span></div><div class="lg-row"><span class="mini t-void"><svg viewBox="0 0 24 24"><use href="#g-void"></use></svg></span><b>VOID</b><span>chips damage · pulls the hostile strike closer</span></div>
     </div>
     <div class="ov-rules">Every swap you make ticks the hostile's strike meter down. Cascades multiply damage. Four in a line forges a NOVA capsule — five forges a SINGULARITY: swap it into anything to annihilate its whole kind. Every fifth contact is a boss. Death ends the run.</div>
     <div class="ov-actions"><button class="btn primary" id="startBtn">INITIATE RUN</button></div></div></div>
@@ -338,7 +338,7 @@ const COLS=7,ROWS=7;
 const TYPES=['plasma','aegis','volt','bio','void'];
 const TYPE_COLORS={plasma:'#ff6a4d',aegis:'#53c8ea',volt:'#ffc84f',bio:'#6fe08d',void:'#c07ef5'};
 const TILE_DEF={plasma:{dmg:7},aegis:{shield:3},volt:{charge:9},bio:{heal:2.5},void:{dmg:3,delay:1}};
-const LEGEND={plasma:'raw damage to the hostile',aegis:'raises your shield — absorbs strikes',volt:'charges the Nova Lance ultimate',bio:'repairs hull',void:'chips damage and delays the hostile strike'};
+const LEGEND={plasma:'raw damage to the hostile',aegis:'raises your shield — absorbs strikes',volt:'charges the Nova Lance ultimate',bio:'repairs hull',void:'chips damage · pulls the hostile strike closer'};
 
 const CLASSES=[
   {n:'Husk Drone',col:'#9fb0bd'},{n:'Siege Crawler',col:'#ff8a55'},{n:'Void Widow',col:'#c07ef5'},
@@ -371,7 +371,7 @@ const UPGRADES=[
   {id:'stasis',n:'STASIS FLARE',d:'The hostile strikes 1 swap later each cycle',ap:p=>p.enemyDelay+=1},
   {id:'chain',n:'CHAIN DRIVER',d:'Cascade bonus +0.35 per chain step',ap:p=>p.chainStep+=.35},
   {id:'leech',n:'LEECH ARRAY',d:'12% of damage dealt repairs your hull',ap:p=>p.leech+=.12},
-  {id:'voidt',n:'VOID TUNER',d:'Void damage ×2.5 · disruption +1 swap',ap:p=>{p.voidMult+=1.5;p.voidDelay+=1}},
+  {id:'voidt',n:'VOID TUNER',d:'Void damage ×2.5 · strike pull +1 swap',ap:p=>{p.voidMult+=1.5;p.voidDelay+=1}},
   {id:'nova',n:'NOVA RIG',d:'Nova detonations deal +18 bonus damage',ap:p=>p.novaBonus+=18},
   {id:'gel',n:'GEL SYNTH',d:'Repair effects +60%',ap:p=>p.healMult+=.6},
   {id:'loop',n:'AEGIS LOOP',d:'Shield gains +50%',ap:p=>p.shieldMult+=.5},
@@ -724,8 +724,8 @@ async function clearSet(destroyIn,spawnSet=new Set(),spawns=[],chain=1,hits=1){
     sfx.match(chain);
     if(delay>0&&enemy.hp>0){
       enemy.charge=Math.max(0,enemy.charge-delay);
-      popAt(sc.x,sc.y,'DISRUPT −'+delay,'void');
-      log('void disruption: hostile pushed back '+delay,'you');
+      popAt(sc.x,sc.y,'STRIKE −'+delay,'void');
+      log('void surge: hostile strike pulled '+delay+' swaps closer','you');
     }
     if(enemy.hp<=0)log('fatal damage: '+dealt.total,'good');
   }
