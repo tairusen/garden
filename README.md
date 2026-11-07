@@ -90,8 +90,9 @@ The explorer is fully under your control. `page` paths are relative to
   automatically, so newly dropped files never go missing.
 - A `page` in the JSON that doesn't exist on disk is skipped with a build
   warning, so typos are easy to spot.
-- The explorer pane hides/shows via the ☰ button in the title bar or
-  `Ctrl+B` (`Cmd+B` on Mac). The state is remembered per browser.
+- The explorer pane hides/shows via the ≡ button in the toolbar,
+  `Ctrl+B` (`Cmd+B` on Mac), or by clicking anywhere outside it. The state
+  is remembered per browser.
 
 ## The editor (`editor/` — local only, gitignored)
 

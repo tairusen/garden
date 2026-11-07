@@ -4,8 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tairusen's Garden</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
-<style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪷</text></svg>">
+  <script>
+    // Apply the saved theme before first paint
+    try { var th = localStorage.getItem('garden.theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
+  </script>
+  <style>
   :root {
     --bg-primary: #1e1e1e;
     --bg-secondary: #252526;
@@ -19,6 +23,36 @@
     --accent: #0e70c0;
     --selected: #094771;
     --green: #6a9955;
+    --heading: #9cdcfe;
+    --link: #3794ff;
+    --code: #ce9178;
+    --miss: #f14c4c;
+    --text-body: #d4d4d4;
+    --icon-game: #ce9178;
+    --icon-game-active: #ffd7c2;
+  }
+
+  /* ===== Alternate themes ===== */
+  html[data-theme="solarized"] {
+    --bg-primary: #002b36;
+    --bg-secondary: #073642;
+    --bg-tertiary: #0e4a57;
+    --bg-input: #0f4a56;
+    --border: #1a5663;
+    --border-dark: #276570;
+    --text-primary: #eee8d5;
+    --text-body: #93a1a1;
+    --text-secondary: #839496;
+    --text-disabled: #586e75;
+    --accent: #268bd2;
+    --selected: #15495e;
+    --green: #859900;
+    --heading: #2aa198;
+    --link: #268bd2;
+    --code: #859900;
+    --miss: #dc322f;
+    --icon-game: #cb4b16;
+    --icon-game-active: #ffb380;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
@@ -77,7 +111,36 @@
   .titlebar-btn:hover { border-color: var(--accent); }
   .titlebar-btn:active { background: var(--bg-tertiary); }
 
-  .app.explorer-hidden .sidebar { display: none; }
+  /* ===== Theme dropdown ===== */
+  .theme-wrap { position: relative; }
+  .theme-menu {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    z-index: 40;
+    min-width: 170px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-dark);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+  .theme-menu.open { display: block; }
+  .theme-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    font: 500 12px Tahoma, "Segoe UI", sans-serif;
+    letter-spacing: 0.04em;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  .theme-menu button:last-child { border-bottom: 0; }
+  .theme-menu button:hover { background: var(--bg-tertiary); }
+  .theme-menu button.active { color: var(--accent); background: var(--bg-input); }
 
   /* ===== Toolbar / Breadcrumb ===== */
   .toolbar {
@@ -97,17 +160,32 @@
   .breadcrumb .crumb-current { color: var(--text-primary); }
 
   /* ===== Main Layout ===== */
-  .main { display: flex; flex: 1; min-height: 0; }
+  .main { position: relative; display: flex; flex: 1; min-height: 0; }
 
-  /* ===== Side Pane / Explorer ===== */
+  /* ===== Side Pane / Explorer — floats over the content pane ===== */
   .sidebar {
-    width: 210px;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    bottom: 10px;
+    z-index: 10;
+    width: 220px;
     background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    flex-shrink: 0;
+    border: 1px solid var(--border-dark);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     padding: 4px 0;
     overflow-y: auto;
     user-select: none;
+    will-change: transform;
+    transition: transform .26s cubic-bezier(.2, .7, .3, 1), opacity .2s ease, visibility 0s linear 0s;
+  }
+  .app.explorer-hidden .sidebar {
+    transform: translateX(calc(-100% - 14px));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    /* visibility flips only after the slide-out finishes */
+    transition: transform .26s cubic-bezier(.2, .7, .3, 1), opacity .2s ease, visibility 0s linear .26s;
   }
   .sidebar-header {
     padding: 4px 10px;
@@ -149,8 +227,8 @@
   .tree .row.active .icon,
   .tree .row.active .caret { color: #fff; }
   .tree .icon.home { color: var(--green); }
-  .tree .icon.game { color: #ce9178; }
-  .tree .row.active .icon.game { color: #ffd7c2; }
+  .tree .icon.game { color: var(--icon-game); }
+  .tree .row.active .icon.game { color: var(--icon-game-active); }
   .tree .caret::before { content: '▾'; }
   .tree-branch.collapsed > .row .caret::before { content: '▸'; }
   .tree-branch.collapsed > .tree-children { display: none; }
@@ -181,7 +259,14 @@
 
   <!-- Toolbar / Breadcrumb -->
   <div class="toolbar">
-    <button class="titlebar-btn" id="explorer-toggle" aria-label="Toggle explorer" title="Toggle explorer (Ctrl+B)">≡</button> 
+    <button class="titlebar-btn" id="explorer-toggle" aria-label="Toggle explorer" title="Toggle explorer (Ctrl+B)">≡</button>
+    <div class="theme-wrap">
+      <button class="titlebar-btn" id="theme-btn" aria-label="Theme" title="Theme">t</button>
+      <div class="theme-menu" id="theme-menu">
+        <button data-theme-value="">Dark</button>
+        <button data-theme-value="solarized">Solarized Dark</button>
+      </div>
+    </div>
     <div class="breadcrumb" id="crumb"></div>
   </div>
 
@@ -322,6 +407,20 @@
     setExplorerVisible(appEl.classList.contains('explorer-hidden'));
   }
   toggleBtn.addEventListener('click', toggleExplorer);
+
+  // Clicking anywhere outside the explorer closes it. Pane clicks happen in
+  // the iframe's document, so they arrive via postMessage from links.js.
+  function closeOnOutside(target) {
+    if (appEl.classList.contains('explorer-hidden')) return;
+    if (target && target.closest &&
+        (target.closest('.sidebar') || target.closest('#explorer-toggle') || target.closest('.theme-wrap'))) return;
+    setExplorerVisible(false);
+  }
+  document.addEventListener('click', (e) => closeOnOutside(e.target));
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin) return;
+    if (e.data && e.data.type === 'garden-pane-click') closeOnOutside(null);
+  });
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'b') {
       e.preventDefault();
@@ -331,6 +430,42 @@
   if (localStorage.getItem('garden.explorer.visible') === '0') {
     appEl.classList.add('explorer-hidden');
   }
+
+  // ===== Theme dropdown =====
+  const themeBtn = document.getElementById('theme-btn');
+  const themeMenu = document.getElementById('theme-menu');
+
+  function applyTheme(name) {
+    if (name) document.documentElement.dataset.theme = name;
+    else delete document.documentElement.dataset.theme;
+    // Live-sync the open content pane (same-origin, so this is allowed)
+    try {
+      const fdoc = frame.contentDocument;
+      if (fdoc) {
+        if (name) fdoc.documentElement.dataset.theme = name;
+        else delete fdoc.documentElement.dataset.theme;
+      }
+    } catch {}
+    try { localStorage.setItem('garden.theme', name); } catch {}
+    themeMenu.querySelectorAll('button').forEach(b =>
+      b.classList.toggle('active', (b.dataset.themeValue || '') === (name || '')));
+  }
+
+  themeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    themeMenu.classList.toggle('open');
+  });
+  themeMenu.addEventListener('click', e => {
+    const b = e.target.closest('button[data-theme-value]');
+    if (!b) return;
+    applyTheme(b.dataset.themeValue);
+    themeMenu.classList.remove('open');
+  });
+  document.addEventListener('click', e => {
+    if (!themeMenu.contains(e.target) && e.target !== themeBtn) themeMenu.classList.remove('open');
+  });
+  themeMenu.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('active', (b.dataset.themeValue || '') === (localStorage.getItem('garden.theme') || '')));
 
   // ===== Init =====
   buildTree(GARDEN.tree, treeEl);

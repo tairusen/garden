@@ -14,6 +14,32 @@
   --accent: #0e70c0;
   --selected: #094771;
   --green: #6a9955;
+  --heading: #9cdcfe;
+  --link: #3794ff;
+  --code: #ce9178;
+  --miss: #f14c4c;
+  --text-body: #d4d4d4;
+}
+
+/* ===== Alternate themes ===== */
+html[data-theme="solarized"] {
+  --bg-primary: #002b36;
+  --bg-secondary: #073642;
+  --bg-tertiary: #0e4a57;
+  --bg-input: #0f4a56;
+  --border: #1a5663;
+  --border-dark: #276570;
+  --text-primary: #eee8d5;
+  --text-body: #93a1a1;
+  --text-secondary: #839496;
+  --text-disabled: #586e75;
+  --accent: #268bd2;
+  --selected: #15495e;
+  --green: #859900;
+  --heading: #2aa198;
+  --link: #268bd2;
+  --code: #859900;
+  --miss: #dc322f;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
@@ -34,9 +60,9 @@ h1 {
   padding-bottom: 8px;
   margin-bottom: 14px;
 }
-h2 { font-size: 15px; font-weight: normal; color: #9cdcfe; margin: 18px 0 6px; }
-p  { line-height: 1.55; color: #d4d4d4; margin-bottom: 10px; max-width: 720px; }
-a  { color: #3794ff; text-decoration: none; }
+h2 { font-size: 15px; font-weight: normal; color: var(--heading); margin: 18px 0 6px; }
+p  { line-height: 1.55; color: var(--text-body); margin-bottom: 10px; max-width: 720px; }
+a  { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .meta { color: var(--text-secondary); font-size: 11px; margin-bottom: 16px; }
 code {
@@ -45,7 +71,7 @@ code {
   padding: 1px 5px;
   font-family: Consolas, "Courier New", monospace;
   font-size: 12px;
-  color: #ce9178;
+  color: var(--code);
 }
 
 /* ===== Home 2x2 Grid ===== */
@@ -68,7 +94,7 @@ code {
 .card h3 {
   font-size: 13px;
   font-weight: bold;
-  color: #9cdcfe;
+  color: var(--heading);
   margin-bottom: 8px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 5px;
@@ -85,7 +111,7 @@ code {
 .recent-box h3 {
   font-size: 13px;
   font-weight: bold;
-  color: #9cdcfe;
+  color: var(--heading);
   margin-bottom: 8px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 5px;
@@ -103,7 +129,7 @@ code {
   font-size: 12px;
 }
 .recent-list a {
-  color: #3794ff;
+  color: var(--link);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -160,7 +186,7 @@ code {
   min-height: 60px;
 }
 .game-log .hit  { color: var(--green); }
-.game-log .miss { color: #f14c4c; }
+.game-log .miss { color: var(--miss); }
 
 /* ===== Scrollbars (match the shell) ===== */
 ::-webkit-scrollbar { width: 14px; height: 14px; }
