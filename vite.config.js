@@ -3,6 +3,8 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
+  rmSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -91,7 +93,12 @@ function loadExplorerTree() {
       if (item.page) {
         const disk = diskPages.get(item.page);
         if (!disk) {
-          console.warn(`explorer.json: no such page "${item.page}" — skipped.`);
+          // If a file with the same name exists elsewhere, point at it —
+          // usually means the file was moved without updating the config.
+          const base = item.page.split('/').pop();
+          const candidates = [...diskPages.keys()].filter((p) => p.split('/').pop() === base);
+          const hint = candidates.length === 1 ? ` — did you mean "${candidates[0]}"?` : '';
+          console.warn(`explorer.json: no such page "${item.page}"${hint} — skipped.`);
           continue;
         }
         listed.add(item.page);
@@ -191,9 +198,31 @@ function stampMeta(html, page) {
 function gardenPlugin() {
   return {
     name: 'garden-meta',
+    // Built pages are published under prod/ (dist/prod/...) even though their
+    // sources live in draft/ — keeps source folder names out of public URLs.
+    // Done after writing (closeBundle) because html output paths come from the
+    // source tree and can't be renamed through the bundle.
+    closeBundle() {
+      const from = resolve(root, 'dist', 'draft');
+      const to = resolve(root, 'dist', 'prod');
+      try {
+        rmSync(to, { recursive: true, force: true });
+        renameSync(from, to);
+      } catch {
+        /* no draft output to move */
+      }
+    },
     transformIndexHtml(html, ctx) {
       const id = String(ctx.filename || ctx.path || '').replace(/\\/g, '/');
-      const payload = { base: BASE, tree: loadExplorerTree(), home: loadHomeCards(), recent: loadRecentPages() };
+      // Dev serves draft/ sources in place; the build relocates them under prod/.
+      const contentDir = ctx.server ? 'draft' : 'prod';
+      const payload = {
+        base: BASE,
+        contentBase: BASE + contentDir + '/',
+        tree: loadExplorerTree(),
+        home: loadHomeCards(),
+        recent: loadRecentPages(),
+      };
       let inject = `<script>window.GARDEN=${JSON.stringify(payload).replace(/</g, '\\u003c')}</script>`;
 
       const m = id.match(/\/draft\/(.*)\.html$/);
@@ -414,7 +443,7 @@ export default defineConfig({
               else if (entry.endsWith('.html')) files.push(full);
             }
             return files;
-          })().map((file) => ['draft/' + relative(draftDir, file).replace(/\\/g, '/').replace(/\.html$/, ''), file])
+          })().map((file) => ['prod/' + relative(draftDir, file).replace(/\\/g, '/').replace(/\.html$/, ''), file])
         ),
       },
     },

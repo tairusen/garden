@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>FSL Workbench 0.2</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #d4d0c8;
+    font: 11px Tahoma, "MS Sans Serif", Geneva, sans-serif;
+    display: flex; flex-direction: column;
+  }
+  #titlebar {
+    background: linear-gradient(90deg, #0a246a, #a6caf0);
+    color: #fff; font-weight: bold; padding: 3px 8px; font-size: 12px;
+    border-bottom: 1px solid #404040;
+  }
+  #menubar { background: #d4d0c8; padding: 1px 4px; border-bottom: 1px solid #808080; }
+  #menubar span { padding: 2px 9px; cursor: default; }
+  #menubar span:hover { background: #0a246a; color: #fff; }
+  #toolbar {
+    padding: 3px 6px; display: flex; gap: 5px; align-items: center;
+    border-bottom: 1px solid #808080; background: #d4d0c8;
+  }
+  button {
+    font: 11px Tahoma, sans-serif; background: #d4d0c8; color: #000;
+    border: 2px solid; border-color: #ffffff #404040 #404040 #ffffff;
+    padding: 3px 12px; cursor: pointer; min-width: 74px;
+  }
+  button:active { border-color: #404040 #ffffff #ffffff #404040; }
+  button:disabled { color: #808080; }
+  .hint { color: #404040; margin-left: 10px; }
+  .out { border: 2px solid; border-color: #ffffff #808080 #808080 #ffffff; }
+  .in  { border: 2px solid; border-color: #808080 #ffffff #ffffff #808080; }
+  #main { flex: 1; display: flex; gap: 5px; padding: 5px; min-height: 0; }
+  .panel { display: flex; flex-direction: column; padding: 4px; min-height: 0; }
+  .caption {
+    background: #808080; color: #fff; font-weight: bold; letter-spacing: 1px;
+    padding: 2px 6px; margin-bottom: 4px; font-size: 11px;
+  }
+  #left  { flex: 1; }
+  #right { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  #editorpanel { flex: 1.25; }
+  #consolepanel { flex: 1; }
+  #namewrap { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+  #namebox { width: 70px; padding: 2px 6px; background: #fff; font: 12px "Lucida Console", monospace; }
+  #gridwrap { flex: 1; overflow: auto; background: #ffffff; }
+  #grid { border-collapse: collapse; table-layout: fixed; width: 100%; }
+  #grid th {
+    background: #d4d0c8; font-weight: normal; color: #000;
+    border: 2px solid; border-color: #ffffff #808080 #808080 #ffffff;
+    font-size: 11px; padding: 1px; position: sticky; top: 0; z-index: 2;
+  }
+  #grid td { border: 1px solid #c0c0c0; padding: 0; height: 19px; }
+  #grid td.selcell { border: 2px solid #0a246a; }
+  #grid input {
+    width: 100%; height: 100%; border: none; background: transparent;
+    font: 11px "Lucida Console", "Courier New", monospace; padding: 1px 3px;
+  }
+  #grid input.num  { text-align: right; }
+  #grid input.scr  { color: #000080; font-style: italic; }
+  #grid input:focus { outline: none; background: #e8f0fe; }
+  #editor {
+    flex: 1; resize: none; background: #ffffff; padding: 4px;
+    font: 12px "Lucida Console", "Courier New", monospace; white-space: pre; overflow: auto;
+  }
+  #editorbtns { margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+  #console {
+    flex: 1; background: #000000; color: #33ff33; overflow-y: auto; padding: 4px 6px;
+    font: 12px "Lucida Console", "Courier New", monospace; white-space: pre-wrap;
+  }
+  #console .err { color: #ff6a6a; }
+  #console .sys { color: #9adfff; }
+  #console .dim { color: #1e8a1e; }
+  #statusbar { display: flex; gap: 4px; padding: 3px 5px; background: #d4d0c8; }
+  #statusbar .box { padding: 2px 10px; background: #d4d0c8; }
+  #sb1 { flex: 1; } #sb2 { width: 200px; } #sb3 { width: 170px; }
+</style>
+</head>
+<body>
+
+<div id="titlebar">FSL Workbench 0.2 — [untitled.wks] &nbsp; &mdash; Formulaic Scripting Language</div>
+<div id="menubar"><span>File</span><span>Edit</span><span>View</span><span>Run</span><span id="helpmenu">Help</span></div>
+
+<div id="toolbar">
+  <button id="runbtn">RUN</button>
+  <button id="stepbtn">STEP</button>
+  <button id="stopbtn">STOP</button>
+  <button id="undobtn">UNDO POKE</button>
+  <button id="clrbtn">CLR CONSOLE</button>
+  <span class="hint">F5 = run &nbsp;|&nbsp; F8 = step &nbsp;|&nbsp; prefix a cell's text with <b>&gt;&gt;</b> to make it a script cell</span>
+</div>
+
+<div id="main">
+  <div id="left" class="panel out">
+    <div class="caption">WORKSHEET &mdash; 10 COLS &times; 100 ROWS (A&ndash;J, 1&ndash;100)</div>
+    <div id="namewrap"><span>Name:</span><div id="namebox" class="in">A1</div></div>
+    <div id="gridwrap" class="in"><table id="grid"></table></div>
+  </div>
+  <div id="right">
+    <div id="editorpanel" class="panel out">
+      <div class="caption">SCRIPT EDITOR &mdash; TARGET: <span id="targetlbl">none</span></div>
+      <textarea id="editor" class="in" spellcheck="false"></textarea>
+      <div id="editorbtns">
+        <button id="savebtn">SAVE AS SCRIPT</button>
+        <span class="hint">select a script cell to load it; edits go live; SAVE converts the selected cell</span>
+      </div>
+    </div>
+    <div id="consolepanel" class="panel out">
+      <div class="caption">CONSOLE</div>
+      <div id="console" class="in"></div>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <div id="sb1" class="box in">Ready.</div>
+  <div id="sb2" class="box in">fuel: --</div>
+  <div id="sb3" class="box in">FSL 0.2 &mdash; cells are memory</div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   FSL INTERPRETER v0.2
+   immediate journaled writes through ONE choke point,
+   run = blocking call, one shared fuel cap.
+   Computed reads: referencing a script cell isnside an
+   expression runs it on the spot and uses its result; the
+   result is remembered until the sheet changes.
+   run is for actions; reference is for values.
+   ============================================================ */
+
+const ROWS = 256, COLS = 10, FUEL = 20000;  /* fuel is the single execution bound */
+const COLN = "ABCDEFGHIJLMNOPQ";
+
+/* ---------- cell store ---------- */
+const grid = Array.from({length: ROWS}, () =>
+  Array.from({length: COLS}, () => ({type:'EMPTY', num:0, text:'', val:null})));
+
+function addrName(r, c) { return COLN[c] + (r + 1); }
+function parseAddr(tok) {
+  const m = /^([A-Qa-q])(\d{1,3})$/.exec(tok);
+  if (!m) return null;
+  const c = COLN.indexOf(m[1].toUpperCase()), r = parseInt(m[2], 10) - 1;
+  if (c < 0 || r < 0 || r >= ROWS) return null;
+  return {r, c};
+}
+function parseRangeTok(tok) {
+  if (tok.includes(':')) {
+    const [a, b] = tok.split(':');
+    const p = parseAddr(a), q = parseAddr(b);
+    if (!p || !q) return null;
+    return {r1: Math.min(p.r,q.r), c1: Math.min(p.c,q.c),
+            r2: Math.max(p.r,q.r), c2: Math.max(p.c,q.c)};
+  }
+  const p = parseAddr(tok);
+  return p ? {r1:p.r, c1:p.c, r2:p.r, c2:p.c} : null;
+}
+function rangeCells(rg) {
+  const out = [];
+  for (let r = rg.r1; r <= rg.r2; r++)
+    for (let c = rg.c1; c <= rg.c2; c++) out.push([r, c]);
+  return out;
+}
+function fsl(msg) { const e = new Error(msg); e.fsl = true; return e; }
+/* aggregates that may also be written as bare statements:  corr A1:A9 B1:B9 */
+const BARE_FNS = new Set(['sum', 'count', 'mean', 'min', 'max', 'stddev', 'corr']);
+
+/* ---------- journal ---------- */
+const journal = [];
+const pokeMarks = [];
+function pushJournal(r, c) { journal.push({r, c, snap: {...grid[r][c]}}); }
+
+/* ---------- computed reads ---------- */
+/* Referencing a script cell inside a calculation runs it on the spot.
+   Results are remembered for the rest of the current run; any write to
+   the sheet wipes the memory. See computedValue() below. */
+const computed = new Map();   /* "r,c" -> result calculated during this run */
+const computing = [];         /* cells being calculated right now (cycle guard) */
+function forgetComputed() { computed.clear(); }
+function keyName(k) { const [r, c] = k.split(','); return addrName(+r, +c); }
+
+/* ---------- THE WRITE CHOKE POINT ---------- */
+function commitWrite(r, c, val) {
+  const cell = grid[r][c];
+  if (cell.type === 'SCRIPT')
+    throw fsl(`write refused: ${addrName(r,c)} is a script cell`);
+  pushJournal(r, c);
+  forgetComputed();
+  if (val.t === 'num')      { cell.type = 'NUMBER'; cell.num = val.v; cell.text = String(val.v); }
+  else if (val.t === 'str') { cell.type = 'LABEL';  cell.text = val.s; }
+  else throw fsl("write: cannot write that value type");
+  refreshCell(r, c);
+}
+
+/* ---------- reads ---------- */
+function readCell(r, c) {
+  const cell = grid[r][c];
+  if (cell.type === 'NUMBER') return {t:'num', v: cell.num};
+  if (cell.type === 'LABEL')  return {t:'str', s: cell.text};
+  if (cell.type === 'SCRIPT') return computedValue(r, c);
+  return null;
+}
+function collectNums(rg) {
+  const out = [];
+  for (const [r, c] of rangeCells(rg)) {
+    const cell = grid[r][c];
+    if (cell.type === 'NUMBER') out.push(cell.num);
+    else if (cell.type === 'LABEL') throw fsl(`${addrName(r,c)} is a label inside a numeric range`);
+    else if (cell.type === 'SCRIPT') {
+      const v = readCell(r, c);
+      if (v && v.t === 'num') out.push(v.v);
+      else throw fsl(`${addrName(r,c)} (script) has no numeric value`);
+    }
+  }
+  return out;
+}
+
+/* ---------- tokenizer ---------- */
+function tokenize(s) {
+  const toks = []; let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9.]/.test(ch)) {
+      let j = i;
+      while (j < s.length && /[0-9.]/.test(s[j])) j++;
+      if (j < s.length && /[eE]/.test(s[j])) {
+        let k = j + 1;
+        if (k < s.length && /[+-]/.test(s[k])) k++;
+        if (k < s.length && /[0-9]/.test(s[k])) { while (k < s.length && /[0-9]/.test(s[k])) k++; j = k; }
+      }
+      toks.push({t:'num', v: parseFloat(s.slice(i, j))}); i = j; continue;
+    }
+    if (/[A-Za-z_]/.test(ch)) {
+      let j = i;
+      while (j < s.length && /[A-Za-z0-9_]/.test(s[j])) j++;
+      toks.push({t:'word', v: s.slice(i, j)}); i = j; continue;
+    }
+    const two = s.substr(i, 2);
+    if (two === '<=' || two === '>=' || two === '!=' || two === '==') {
+      toks.push({t:'op', v: two === '==' ? '=' : two}); i += 2; continue;
+    }
+    if ('+-*/^()=<>:,'.includes(ch)) { toks.push({t:'op', v: ch}); i++; continue; }
+    throw fsl(`unexpected character '${ch}'`);
+  }
+  return toks;
+}
+
+/* ---------- parser ---------- */
+class Parser {
+  constructor(toks) { this.toks = toks; this.i = 0; }
+  peek(k = 0) { return this.toks[this.i + k] || null; }
+  next() { return this.toks[this.i++]; }
+  expectEnd() { if (this.i < this.toks.length) throw fsl(`unexpected '${this.toks[this.i].v}'`); }
+  expectOp(v) {
+    const tk = this.next();
+    if (!tk || tk.t !== 'op' || tk.v !== v) throw fsl(`expected '${v}'`);
+  }
+  parse() { return this.cmp(); }
+  cmp() {
+    let a = this.add();
+    const tk = this.peek();
+    if (tk && tk.t === 'op' && ['=','!=','<','>','<=','>='].includes(tk.v)) {
+      this.next();
+      return {k:'bin', op: tk.v, a, b: this.add()};
+    }
+    return a;
+  }
+  add() {
+    let a = this.mul();
+    for (;;) {
+      const tk = this.peek();
+      if (tk && tk.t === 'op' && (tk.v === '+' || tk.v === '-')) { this.next(); a = {k:'bin', op:tk.v, a, b:this.mul()}; }
+      else return a;
+    }
+  }
+  mul() {
+    let a = this.unary();
+    for (;;) {
+      const tk = this.peek();
+      if (tk && tk.t === 'op' && (tk.v === '*' || tk.v === '/')) { this.next(); a = {k:'bin', op:tk.v, a, b:this.unary()}; }
+      else return a;
+    }
+  }
+  unary() {
+    const tk = this.peek();
+    if (tk && tk.t === 'op' && tk.v === '-') { this.next(); return {k:'neg', a:this.unary()}; }
+    return this.pow();
+  }
+  pow() {
+    const a = this.primary();
+    const tk = this.peek();
+    if (tk && tk.t === 'op' && tk.v === '^') { this.next(); return {k:'bin', op:'^', a, b:this.unary()}; }
+    return a;
+  }
+  primary() {
+    const tk = this.next();
+    if (!tk) throw fsl('unexpected end of expression');
+    if (tk.t === 'num') return {k:'num', v: tk.v};
+    if (tk.t === 'op' && tk.v === '(') { const e = this.parse(); this.expectOp(')'); return e; }
+    if (tk.t === 'word') {
+      if (/^[A-Ja-j]\d{1,3}$/.test(tk.v)) {
+        const nxt = this.peek();
+        if (nxt && nxt.t === 'op' && nxt.v === ':') {
+          this.next();
+          const w2 = this.next();
+          if (!w2 || w2.t !== 'word') throw fsl('expected address after ":"');
+          const p = parseAddr(tk.v), q = parseAddr(w2.v);
+          if (!p || !q) throw fsl(`bad range ${tk.v}:${w2.v}`);
+          return {k:'range', r1:Math.min(p.r,q.r), c1:Math.min(p.c,q.c), r2:Math.max(p.r,q.r), c2:Math.max(p.c,q.c)};
+        }
+        const p = parseAddr(tk.v);
+        if (!p) throw fsl(`bad address ${tk.v}`);
+        return {k:'addr', r:p.r, c:p.c};
+      }
+      const nxt = this.peek();
+      if (nxt && nxt.t === 'op' && nxt.v === '(') {
+        this.next();
+        const args = [];
+        if (!(this.peek() && this.peek().t === 'op' && this.peek().v === ')')) {
+          for (;;) { args.push(this.parse()); if (this.peek() && this.peek().v === ',') { this.next(); continue; } break; }
+        }
+        this.expectOp(')');
+        return {k:'call', fn: tk.v.toLowerCase(), args};
+      }
+      /* bare name: a map() variable (x/y/z/w) — resolved at eval time */
+      return {k:'env', name: tk.v.toLowerCase()};
+    }
+    throw fsl(`unexpected '${tk.v}'`);
+  }
+}
+function parseExpr(s) {
+  const p = new Parser(tokenize(s));
+  const e = p.parse();
+  p.expectEnd();
+  return e;
+}
+
+/* ---------- evaluator (env = map variables) ---------- */
+function expectNum(v, ctx) {
+  if (v.t === 'num') return v.v;
+  if (v.t === 'str') throw fsl(`${ctx}: expected a number, got label "${v.s}"`);
+  if (v.t === 'range') throw fsl(`${ctx}: got a range — wrap it in a function, e.g. mean(A1:A10)`);
+  throw fsl(`${ctx}: not a number`);
+}
+function oneRange(args, fn) {
+  if (args.length !== 1 || args[0].t !== 'range') throw fsl(`${fn}() expects one range argument`);
+  return args[0];
+}
+function evalExpr(n, env) {
+  switch (n.k) {
+    case 'num': return {t:'num', v:n.v};
+    case 'env': {
+      if (!env || !(n.name in env))
+        throw fsl(`unknown identifier '${n.name}' — bare names only exist inside map's expr (x, y, z, w)`);
+      return {t:'num', v: env[n.name]};
+    }
+    case 'addr': {
+      const v = readCell(n.r, n.c);
+      if (!v) throw fsl(`${addrName(n.r,n.c)} is empty`);
+      return v;
+    }
+    case 'range': return {t:'range', r1:n.r1, c1:n.c1, r2:n.r2, c2:n.c2};
+    case 'neg': return {t:'num', v: -expectNum(evalExpr(n.a, env), 'unary -')};
+    case 'bin': {
+      const a = evalExpr(n.a, env);
+      if (['=','!=','<','>','<=','>='].includes(n.op)) {
+        const b = evalExpr(n.b, env);
+        if (n.op === '=' || n.op === '!=') {
+          if (a.t === 'str' && b.t === 'str') return {t:'num', v: (a.s === b.s) === (n.op === '=') ? 1 : 0};
+          if (a.t === 'num' && b.t === 'num') return {t:'num', v: (a.v === b.v) === (n.op === '=') ? 1 : 0};
+          throw fsl(`'${n.op}': cannot compare ${a.t} to ${b.t}`);
+        }
+        const x = expectNum(a, `'${n.op}'`), y = expectNum(b, `'${n.op}'`);
+        const r = {'<':x<y, '>':x>y, '<=':x<=y, '>=':x>=y}[n.op];
+        return {t:'num', v: r ? 1 : 0};
+      }
+      const x = expectNum(a, `'${n.op}'`), y = expectNum(evalExpr(n.b, env), `'${n.op}'`);
+      switch (n.op) {
+        case '+': return {t:'num', v:x+y};
+        case '-': return {t:'num', v:x-y};
+        case '*': return {t:'num', v:x*y};
+        case '/': if (y === 0) throw fsl('division by zero'); return {t:'num', v:x/y};
+        case '^': return {t:'num', v:Math.pow(x,y)};
+      }
+    }
+    case 'call': {
+      const args = n.args.map(a => evalExpr(a, env));
+      switch (n.fn) {
+        case 'sum':    { const a = collectNums(oneRange(args,'sum'));    return {t:'num', v: a.reduce((s,x)=>s+x,0)}; }
+        case 'count':  { const a = collectNums(oneRange(args,'count'));  return {t:'num', v: a.length}; }
+        case 'mean':   { const a = collectNums(oneRange(args,'mean'));   if (!a.length) throw fsl('mean: empty range'); return {t:'num', v: a.reduce((s,x)=>s+x,0)/a.length}; }
+        case 'min':    { const a = collectNums(oneRange(args,'min'));    if (!a.length) throw fsl('min: empty range'); return {t:'num', v: Math.min(...a)}; }
+        case 'max':    { const a = collectNums(oneRange(args,'max'));    if (!a.length) throw fsl('max: empty range'); return {t:'num', v: Math.max(...a)}; }
+        case 'stddev': { const a = collectNums(oneRange(args,'stddev')); if (a.length < 2) throw fsl('stddev: need >= 2 values');
+                         const m = a.reduce((s,x)=>s+x,0)/a.length;
+                         return {t:'num', v: Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1))}; }
+        case 'corr': {
+          if (args.length !== 2 || args[0].t !== 'range' || args[1].t !== 'range') throw fsl('corr() expects two ranges');
+          const xs = collectNums(args[0]), ys = collectNums(args[1]);
+          if (xs.length !== ys.length) throw fsl(`corr: ranges differ in length (${xs.length} vs ${ys.length})`);
+          if (xs.length < 2) throw fsl('corr: need >= 2 values');
+          const n2 = xs.length;
+          const sx = xs.reduce((s,x)=>s+x,0),  sy = ys.reduce((s,x)=>s+x,0);
+          const sxx = xs.reduce((s,x)=>s+x*x,0), syy = ys.reduce((s,x)=>s+x*x,0), sxy = xs.reduce((s,x,i)=>s+x*ys[i],0);
+          const dx = n2*sxx-sx*sx, dy = n2*syy-sy*sy;
+          if (dx === 0 || dy === 0) throw fsl('corr: zero variance');
+          return {t:'num', v: (n2*sxy-sx*sy)/Math.sqrt(dx*dy)};
+        }
+        case 'at': {  /* dynamic addressing: at(row, col), 1-based, A=1 */
+          if (args.length !== 2) throw fsl('at() expects (row, col)');
+          const r = Math.round(expectNum(args[0], 'at row'));
+          const c = Math.round(expectNum(args[1], 'at col'));
+          if (r < 1 || r > ROWS || c < 1 || c > COLS) throw fsl(`at(${r},${c}): out of bounds`);
+          const v = readCell(r-1, c-1);
+          if (!v) throw fsl(`at(${r},${c}): cell ${addrName(r-1,c-1)} is empty`);
+          return v;
+        }
+        case 'rand': {
+          if (args.length > 1) throw fsl('rand() takes no arguments (or rand() ignored)');
+          return {t:'num', v: Math.random()};
+        }
+        case 'abs': case 'sqrt': case 'log': case 'exp': case 'floor': case 'round': {
+          if (args.length !== 1) throw fsl(`${n.fn}() expects one argument`);
+          const x = expectNum(args[0], n.fn + '()');
+          if (n.fn === 'sqrt' && x < 0) throw fsl('sqrt of negative number');
+          if (n.fn === 'log' && x <= 0) throw fsl('log of non-positive number');
+          return {t:'num', v: Math[n.fn](x)};
+        }
+        default: throw fsl(`unknown function '${n.fn}'`);
+      }
+    }
+  }
+}
+
+/* ---------- machine ---------- */
+let machine = null;   /* the interactive poke; computed reads run their own */
+let target = null;
+let fuel = 0;         /* one shared pool — every calculated step draws from it */
+
+function makeFrame(r, c) {
+  return {r, c, lines: grid[r][c].text.split('\n'), pc: 0, reg: {t:'num', v:0}};
+}
+function startPokeFromTarget() {
+  if (!target) { tlog('RUN: no target cell selected — click a cell first.', 'err'); return false; }
+  const cell = grid[target.r][target.c];
+  if (cell.type !== 'SCRIPT') {
+    tlog(`RUN: ${addrName(target.r,target.c)} is not a script cell (prefix its text with ">>" to make one).`, 'err');
+    return false;
+  }
+  machine = {kind: 'poke', frames: [makeFrame(target.r, target.c)]};
+  fuel = FUEL;
+  forgetComputed();
+  pokeMarks.push(journal.length);
+  tlog(`POKE ${addrName(target.r,target.c)} — fuel ${FUEL}`, 'sys');
+  return true;
+}
+function popFrame(ctx) {
+  const f = ctx.frames.pop();
+  grid[f.r][f.c].val = f.reg;
+  refreshCell(f.r, f.c);
+  if (ctx.kind === 'poke') {
+    if (!ctx.frames.length) {
+      tlog(`POKE ${addrName(f.r,f.c)} COMPLETE — register = ${fmtVal(f.reg)}`, 'sys');
+      machine = null;
+    } else {
+      tlog(`  returned from ${addrName(f.r,f.c)} (register = ${fmtVal(f.reg)})`, 'dim');
+    }
+  } else if (ctx.frames.length) {
+    tlog(`  returned from ${addrName(f.r,f.c)} (result = ${fmtVal(f.reg)})`, 'dim');
+  }
+}
+
+/* ---------- computed reads ----------
+   Using a script cell inside a calculation runs that script right
+   now and uses its result. Results are remembered for the rest of
+   the current run; any write to the sheet wipes the memory. A script
+   that reads itself (directly or through others) mid-calculation is
+   reported as a circular read. All steps draw from the same fuel. */
+function computedValue(r, c) {
+  const key = r + ',' + c;
+  if (computing.includes(key))
+    throw fsl(`circular read: ${computing.map(keyName).join(' → ')} → ${addrName(r, c)}`);
+  if (computed.has(key)) return computed.get(key);
+  const ctx = {kind: 'compute', frames: [makeFrame(r, c)]};
+  let lineNo = 1;
+  computing.push(key);
+  try {
+    while (ctx.frames.length) {
+      const f = ctx.frames[ctx.frames.length - 1];
+      while (f.pc < f.lines.length) {
+        const t = f.lines[f.pc].trim();
+        if (t && !t.startsWith('#') && !t.startsWith('--')) break;
+        f.pc++;
+      }
+      if (f.pc >= f.lines.length) { popFrame(ctx); continue; }
+      lineNo = f.pc + 1;
+      const line = f.lines[f.pc++];
+      execLine(line, f, ctx);
+      fuel--;
+      if (fuel <= 0) throw fsl(`out of fuel (${FUEL} steps)`);
+    }
+  } catch (e) {
+    if (e.fsl) {
+      e.evalCell = e.evalCell || addrName(r, c);
+      e.evalLine = e.evalLine || lineNo;
+      e.evalChain = e.evalChain || [];
+      e.evalChain.push(addrName(r, c));
+    }
+    throw e;
+  } finally {
+    computing.pop();
+  }
+  const result = grid[r][c].val;
+  computed.set(key, result);
+  tlog(`  computed ${addrName(r, c)} = ${fmtVal(result)}`, 'dim');
+  return result;
+}
+function execLine(line, frame, ctx) {
+  const t = line.trim();
+  if (!t || t.startsWith('#') || t.startsWith('--')) return;
+
+  if (/^if\b/i.test(t)) {
+    const m = t.match(/^if\b(.+?)\bthen\b(.*)$/i);
+    if (!m) throw fsl("if: expected 'then <instruction>'");
+    const cv = evalExpr(parseExpr(m[1]), null);
+    if (expectNum(cv, 'if condition') !== 0) execLine(m[2], frame, ctx);
+    return;
+  }
+  if (/^write\b/i.test(t)) {
+    let m = t.match(/^write\s+into\s+(\S+)\s*$/i);
+    if (m) { writeValue(m[1], frame.reg); return; }
+    m = t.match(/^write\s+(.+?)\s+into\s+(\S+)\s*$/i);
+    if (m) writeValue(m[2], evalExpr(parseExpr(m[1]), null));
+    else throw fsl("write: expected 'write [expr] into <addr|range>'");
+    return;
+  }
+  if (/^setat\b/i.test(t)) {  /* setat(rowExpr, colExpr, valExpr) — dynamic write */
+    /* parse the whole setat(...) as a call node; stripping the name first
+       would leave "(a, b, c)", which the expression parser rejects */
+    let ast;
+    try { ast = parseExpr(t); }
+    catch (e) { throw fsl('setat: syntax is  setat(rowExpr, colExpr, valExpr)'); }
+    if (ast.k !== 'call' || ast.fn !== 'setat' || ast.args.length !== 3)
+      throw fsl('setat: syntax is  setat(rowExpr, colExpr, valExpr)');
+    const r = Math.round(expectNum(evalExpr(ast.args[0], null), 'setat row'));
+    const c = Math.round(expectNum(evalExpr(ast.args[1], null), 'setat col'));
+    if (r < 1 || r > ROWS || c < 1 || c > COLS) throw fsl(`setat(${r},${c}): out of bounds`);
+    commitWrite(r-1, c-1, evalExpr(ast.args[2], null));
+    return;
+  }
+  if (/^run\b/i.test(t)) {
+    const m = t.match(/^run\s+(\S+)\s*$/i);
+    if (!m) throw fsl('run: expected an address');
+    const p = parseAddr(m[1]);
+    if (!p) throw fsl(`run: bad address ${m[1]}`);
+    const cell = grid[p.r][p.c];
+    if (cell.type === 'EMPTY') throw fsl(`run: ${addrName(p.r,p.c)} is empty`);
+    if (cell.type !== 'SCRIPT') throw fsl(`run: ${addrName(p.r,p.c)} is not a script cell`);
+    ctx.frames.push(makeFrame(p.r, p.c));
+    tlog(`  call ${addrName(p.r,p.c)} (depth ${ctx.frames.length})`, 'dim');
+    return;
+  }
+  if (/^linreg\b/i.test(t)) {
+    const m = t.match(/^linreg\s+in\s+(\S+)\s+(\S+)\s+out\s+(\S+)\s*$/i);
+    if (!m) throw fsl('linreg: syntax is  linreg in <xrange> <yrange> out <range>');
+    const rx = parseRangeTok(m[1]), ry = parseRangeTok(m[2]), ro = parseRangeTok(m[3]);
+    if (!rx || !ry || !ro) throw fsl('linreg: bad range');
+    const xs = collectNums(rx), ys = collectNums(ry);
+    if (xs.length !== ys.length) throw fsl(`linreg: ranges differ in length (${xs.length} vs ${ys.length})`);
+    if (xs.length < 2) throw fsl('linreg: need >= 2 points');
+    const n = xs.length;
+    const sx = xs.reduce((s,x)=>s+x,0),  sy = ys.reduce((s,x)=>s+x,0);
+    const sxx = xs.reduce((s,x)=>s+x*x,0), syy = ys.reduce((s,x)=>s+x*x,0), sxy = xs.reduce((s,x,i)=>s+x*ys[i],0);
+    const dx = n*sxx - sx*sx, dy = n*syy - sy*sy;
+    if (dx === 0 || dy === 0) throw fsl('linreg: zero variance');
+    const slope = (n*sxy - sx*sy)/dx;
+    const intercept = (sy - slope*sx)/n;
+    const r2 = Math.pow((n*sxy - sx*sy)/Math.sqrt(dx*dy), 2);
+    const out = rangeCells(ro);
+    if (out.length < 3) throw fsl(`linreg: out range too small (need 3 cells for slope/intercept/R2, got ${out.length})`);
+    tlog(`  linreg: slope=${fmt(slope)} intercept=${fmt(intercept)} R2=${fmt(r2)} (n=${n})`, 'dim');
+    commitWrite(out[0][0], out[0][1], {t:'num', v:slope});
+    commitWrite(out[1][0], out[1][1], {t:'num', v:intercept});
+    commitWrite(out[2][0], out[2][1], {t:'num', v:r2});
+    return;
+  }
+  if (/^zscore\b/i.test(t)) {
+    const m = t.match(/^zscore\s+in\s+(\S+)\s+out\s+(\S+)\s*$/i);
+    if (!m) throw fsl('zscore: syntax is  zscore in <range> out <range>');
+    const ri = parseRangeTok(m[1]), ro = parseRangeTok(m[2]);
+    if (!ri || !ro) throw fsl('zscore: bad range');
+    const inC = rangeCells(ri), outC = rangeCells(ro);
+    if (inC.length !== outC.length) throw fsl('zscore: out range must be the same size as in range');
+    const xs = collectNums(ri);
+    if (xs.length < 2) throw fsl('zscore: need >= 2 numeric values');
+    const mu = xs.reduce((s,x)=>s+x,0)/xs.length;
+    const sd = Math.sqrt(xs.reduce((s,x)=>s+(x-mu)*(x-mu),0)/(xs.length-1));
+    if (sd === 0) throw fsl('zscore: zero stddev');
+    let k = 0;
+    for (const [r, c] of inC) {
+      const cell = grid[r][c];
+      if (cell.type === 'NUMBER') commitWrite(outC[k][0], outC[k][1], {t:'num', v:(cell.num-mu)/sd});
+      k++;
+    }
+    return;
+  }
+  if (/^map\b/i.test(t)) {  /* elementwise:  map in <r> [in <r>...] out <r> expr <expr using x y z w> */
+    let rest = t.replace(/^map\s*/i, '');
+    const ins = [];
+    for (;;) {
+      const m = rest.match(/^in\s+(\S+)\s*/i);
+      if (!m) break;
+      const rg = parseRangeTok(m[1]);
+      if (!rg) throw fsl(`map: bad range ${m[1]}`);
+      ins.push(rg);
+      rest = rest.slice(m[0].length);
+      /* further input ranges may follow without repeating "in"
+         (stops at "out"/"expr" — those are never valid range tokens) */
+      for (;;) {
+        const m2 = rest.match(/^(\S+)\s*/);
+        if (!m2) break;
+        const rg2 = parseRangeTok(m2[1]);
+        if (!rg2) break;
+        ins.push(rg2);
+        rest = rest.slice(m2[0].length);
+      }
+    }
+    const mo = rest.match(/^out\s+(\S+)\s+expr\s+([\s\S]+)$/i);
+    if (!mo) throw fsl('map: syntax is  map in <range> [in <range>...] out <range> expr <expr using x y z w>');
+    const ro = parseRangeTok(mo[1]);
+    if (!ro) throw fsl(`map: bad out range ${mo[1]}`);
+    if (!ins.length) throw fsl('map: at least one input range required');
+    if (ins.length > 4) throw fsl('map: max 4 inputs (x, y, z, w)');
+    const outC = rangeCells(ro);
+    const inCols = ins.map(rangeCells);
+    inCols.forEach((cc, i) => {
+      if (cc.length !== outC.length) throw fsl(`map: input ${i+1} has ${cc.length} cells, out has ${outC.length}`);
+    });
+    const ast = parseExpr(mo[2]);
+    const names = ['x','y','z','w'];
+    for (let k = 0; k < outC.length; k++) {
+      const env = {};
+      for (let j = 0; j < inCols.length; j++) {
+        const [r, c] = inCols[j][k];
+        const v = readCell(r, c);
+        if (!v || v.t !== 'num') throw fsl(`map: ${addrName(r,c)} is not numeric (input ${names[j]}, element ${k+1})`);
+        env[names[j]] = v.v;
+      }
+      const val = expectNum(evalExpr(ast, env), 'map expr');
+      commitWrite(outC[k][0], outC[k][1], {t:'num', v: val});
+    }
+    return;
+  }
+  if (/^fill\b/i.test(t)) {
+    const m = t.match(/^fill\s+(.+?)\s+into\s+(\S+)\s*$/i);
+    if (!m) throw fsl('fill: syntax is  fill <expr> into <range>');
+    writeValue(m[2], evalExpr(parseExpr(m[1]), null));
+    return;
+  }
+  /* bare aggregate statement:  corr A1:A9 B1:B9  ≡  corr(A1:A9, B1:B9) */
+  const bm = t.match(/^([a-z]+)\s+(.+)$/i);
+  if (bm && BARE_FNS.has(bm[1].toLowerCase())) {
+    const args = bm[2].trim().split(/\s+/).join(',');
+    frame.reg = evalExpr(parseExpr(`${bm[1].toLowerCase()}(${args})`), null);
+    return;
+  }
+  /* plain expression -> register */
+  frame.reg = evalExpr(parseExpr(t), null);
+}
+function writeValue(targetTok, val) {
+  const rg = parseRangeTok(targetTok);
+  if (!rg) throw fsl(`bad write target ${targetTok}`);
+  const cells = rangeCells(rg);
+  if (val.t === 'range') {
+    const src = collectNums(val);
+    if (src.length !== cells.length) throw fsl(`write: size mismatch (${src.length} values into ${cells.length} cells)`);
+    cells.forEach(([r, c], i) => commitWrite(r, c, {t:'num', v:src[i]}));
+  } else if (cells.length === 1) {
+    commitWrite(cells[0][0], cells[0][1], val);
+  } else {
+    for (const [r, c] of cells) commitWrite(r, c, val);
+  }
+}
+function stepOnce() {
+  if (!machine) { if (!startPokeFromTarget()) return; }
+  const f = machine.frames[machine.frames.length - 1];
+  while (f.pc < f.lines.length) {
+    const t = f.lines[f.pc].trim();
+    if (t && !t.startsWith('#') && !t.startsWith('--')) break;
+    f.pc++;
+  }
+  if (f.pc >= f.lines.length) { popFrame(machine); updateStatus(); return; }
+  const lineNo = f.pc + 1;
+  const line = f.lines[f.pc++];
+  try {
+    execLine(line, f, machine);
+  } catch (e) {
+    if (e.fsl) {
+      if (e.evalChain)
+        tlog(`RUNTIME ERROR [${e.evalCell} line ${e.evalLine}]: ${e.message} — computed reads: ${[addrName(f.r, f.c), ...e.evalChain].join(' → ')}`, 'err');
+      else
+        tlog(`RUNTIME ERROR [${addrName(f.r,f.c)} line ${lineNo}]: ${e.message}`, 'err');
+      machine = null;
+    } else throw e;
+  }
+  if (machine) {
+    fuel--;
+    if (fuel <= 0) {
+      tlog(`RUNTIME ERROR: out of fuel (${FUEL} steps). Partial writes remain; UNDO POKE reverts.`, 'err');
+      machine = null;
+    }
+  }
+  updateStatus();
+}
+
+/* ---------- formatting ---------- */
+function fmt(v) {
+  if (!isFinite(v)) return String(v);
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  if (a >= 1e7 || a < 1e-4) return v.toExponential(4);
+  let s = v.toPrecision(7);
+  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+function fmtVal(v) {
+  if (v.t === 'num') return fmt(v.v);
+  if (v.t === 'str') return `"${v.s}"`;
+  return '(range)';
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const consoleEl = $('console'), editorEl = $('editor'), namebox = $('namebox');
+let sel = {r: 0, c: 0};
+const cellInputs = [];
+
+function tlog(msg, cls) {
+  const div = document.createElement('div');
+  if (cls) div.className = cls;
+  div.textContent = msg;
+  consoleEl.appendChild(div);
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+function parseCellText(txt) {
+  const t = txt.trim();
+  if (t === '') return {type:'EMPTY', num:0, text:'', val:null};
+  if (t.startsWith('>>')) return {type:'SCRIPT', text: t.slice(2), val: null};
+  if (/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) return {type:'NUMBER', num: parseFloat(t), text: t, val: null};
+  return {type:'LABEL', text: t, num: 0, val: null};
+}
+function refreshCell(r, c) {
+  const cell = grid[r][c], inp = cellInputs[r][c];
+  inp.classList.remove('num', 'scr');
+  switch (cell.type) {
+    case 'EMPTY':  inp.value = ''; break;
+    case 'NUMBER': inp.value = fmt(cell.num); inp.classList.add('num'); break;
+    case 'LABEL':  inp.value = cell.text; break;
+    case 'SCRIPT': {
+      const first = (cell.text.trim().split('\n')[0] || 'script').replace(/^#*/, '').trim();
+      inp.value = '\u00BB ' + (first.slice(0, 9) || '(empty)');
+      inp.classList.add('scr');
+      inp.title = cell.text;
+      break;
+    }
+  }
+}
+function refreshAll() { for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) refreshCell(r, c); }
+function selectCell(r, c) {
+  cellInputs[sel.r][sel.c].parentElement.classList.remove('selcell');
+  sel = {r, c};
+  cellInputs[r][c].parentElement.classList.add('selcell');
+  namebox.textContent = addrName(r, c);
+  const cell = grid[r][c];
+  target = {r, c};
+  if (cell.type === 'SCRIPT') {
+    editorEl.value = cell.text;
+    $('targetlbl').textContent = `${addrName(r,c)} [script]`;
+  } else {
+    $('targetlbl').textContent = `${addrName(r,c)} [${cell.type.toLowerCase()} — SAVE AS SCRIPT to convert]`;
+  }
+}
+function buildGrid() {
+  const tbl = $('grid');
+  const head = tbl.insertRow();
+  head.appendChild(document.createElement('th'));
+  for (let c = 0; c < COLS; c++) {
+    const th = document.createElement('th');
+    th.textContent = COLN[c];
+    head.appendChild(th);
+  }
+  for (let r = 0; r < ROWS; r++) {
+    const row = tbl.insertRow();
+    const rh = document.createElement('th');
+    rh.textContent = r + 1;
+    row.appendChild(rh);
+    cellInputs.push([]);
+    for (let c = 0; c < COLS; c++) {
+      const td = row.insertCell();
+      const inp = document.createElement('input');
+      inp.addEventListener('change', () => {
+        pushJournal(r, c);
+        grid[r][c] = parseCellText(inp.value);
+        forgetComputed();
+        refreshCell(r, c);
+        if (grid[r][c].type === 'SCRIPT') selectCell(r, c);
+      });
+      inp.addEventListener('focus', () => selectCell(r, c));
+      td.appendChild(inp);
+      cellInputs[r].push(inp);
+    }
+  }
+}
+function updateStatus() {
+  $('sb1').textContent = machine
+    ? `Executing ${addrName(machine.frames[machine.frames.length-1].r, machine.frames[machine.frames.length-1].c)} ...`
+    : 'Ready.';
+  $('sb2').textContent = machine ? `fuel: ${fuel}  depth: ${machine.frames.length}` : 'fuel: --';
+}
+function stopMachine() {
+  if (machine) {
+    machine = null;
+    tlog('execution stopped by user. Partial writes remain — UNDO POKE reverts them.', 'err');
+  }
+}
+function doRun() {
+  stopMachine();
+  if (!startPokeFromTarget()) return;
+  let guard = 0;
+  while (machine) {
+    stepOnce();
+    if (++guard > 500000) { tlog('internal: run-loop guard tripped', 'err'); machine = null; break; }
+  }
+  updateStatus();
+}
+function doStep() { stepOnce(); }
+function doUndo() {
+  stopMachine();
+  if (!pokeMarks.length) { tlog('UNDO: nothing to undo.', 'dim'); return; }
+  const start = pokeMarks.pop();
+  let count = 0;
+  for (let i = journal.length - 1; i >= start; i--) {
+    const e = journal[i];
+    grid[e.r][e.c] = {...e.snap};
+    refreshCell(e.r, e.c);
+    count++;
+  }
+  journal.length = start;
+  forgetComputed();
+  tlog(`UNDO: reverted ${count} cell write(s).`, 'sys');
+  updateStatus();
+}
+
+/* ---------- preload demo sheet ---------- */
+function preload() {
+  /* A: centered feature  x = (i-25)/10   B: y = 5 + 3x + wobble */
+  for (let i = 1; i <= 50; i++) {
+    const x = (i - 25) / 10;
+    const y = 5 + 3 * x + 0.3 * Math.sin(i * 1.7);
+    grid[i-1][0] = {type:'NUMBER', num:x, text:String(x), val:null};
+    grid[i-1][1] = {type:'NUMBER', num:y, text:String(y), val:null};
+  }
+  /* gradient-descent state: a=F1  b=F2  learning rate=F3  iter counter=G1  max iter=G2 */
+  grid[0][5] = {type:'NUMBER', num:0,   text:'0',   val:null};  /* F1 = a */
+  grid[1][5] = {type:'NUMBER', num:0,   text:'0',   val:null};  /* F2 = b */
+  grid[2][5] = {type:'NUMBER', num:0.1, text:'0.1', val:null};  /* F3 = lr */
+  grid[0][6] = {type:'NUMBER', num:0,   text:'0',   val:null};  /* G1 = iter */
+  grid[1][6] = {type:'NUMBER', num:50,  text:'50',  val:null};  /* G2 = max iter */
+  grid[0][9] = {type:'NUMBER', num:5,   text:'5',   val:null};  /* J1 = countdown counter */
+
+  grid[0][3] = {type:'SCRIPT', val:null, text:
+`# D1 -- basics demo (select & RUN)
+linreg in A1:A50 B1:B50 out F7:F9
+corr A1:A50 B1:B50
+mean B1:B50
+
+# F7=slope F8=intercept F9=R^2
+# register (this cell's value) = corr then overwritten by mean`};
+
+  grid[0][4] = {type:'SCRIPT', val:null, text:
+`# E1 -- recursion countdown demo (counter in J1)
+J1 - 1
+write into J1
+run E2`};
+
+  grid[1][4] = {type:'SCRIPT', val:null, text:
+`# E2 -- loop test: call E1 while J1 > 0
+if J1 > 0 then run E1
+J1 * 1`};
+
+  grid[0][7] = {type:'SCRIPT', val:null, text:
+`# H1 -- ONE gradient-descent step for  y = a + b*x
+# a=F1  b=F2  lr=F3   data: A1:A50 (x), B1:B50 (y)
+# C1:C50 = residuals (D is taken by the D1 script cell); F4 = d/da; F5 = d/db
+
+map in A1:A50 B1:B50 out C1:C50 expr F1 + F2*x - y
+2*mean(C1:C50)
+write into F4
+
+map in A1:A50 B1:B50 out C1:C50 expr (F1 + F2*x - y)*x
+2*mean(C1:C50)
+write into F5
+
+F1 - F3*F4
+write into F1
+F2 - F3*F5
+write into F2
+G1 + 1
+write into G1
+F2`};
+
+  grid[1][7] = {type:'SCRIPT', val:null, text:
+`# H2 -- DRIVER: repeat H1 until G1 reaches G2 (50 iters)
+# watch F1/F2 converge to ~5 and ~3 in the grid!
+if G1 < G2 then run H1
+if G1 < G2 then run H2
+F1`};
+
+  grid[2][7] = {type:'SCRIPT', val:null, text:
+`# H3 -- dynamic addressing demo
+# write 99 into B6 using COMPUTED indices (row 2*3, col 1+1):
+setat(2*3, 1+1, 99)
+# read it back through at():
+at(6, 2)`};
+
+  grid[5][8] = {type:'SCRIPT', val:null, text:
+`# I6 -- a script used as a value: the current mean of column B
+mean(B1:B50)`};
+
+  grid[6][8] = {type:'SCRIPT', val:null, text:
+`# I7 -- computed reads: referencing I6 calculates it on the spot
+write I6 * 2 into I8`};
+}
+
+/* ---------- wire up ---------- */
+buildGrid();
+preload();
+refreshAll();
+selectCell(1, 7);   /* H2 — ready for the gradient descent */
+tlog('FSL WORKBENCH 0.2 -- cells are memory.', 'sys');
+tlog('Demo sheet: A1:B50 data, D1/E1/E2/H1/H2/H3 scripts, F/G/J hold state.');
+tlog('1) RUN on H2 (selected): gradient descent, 50 iterations.');
+tlog('   Watch F1 -> ~5, F2 -> ~3 converge in the grid. UNDO POKE resets.', 'dim');
+tlog('2) RUN on D1: closed-form linreg into F7:F9 (compare F1/F2!).');
+tlog('3) RUN on H3: setat/at dynamic addressing demo.', 'dim');
+tlog('4) RUN on E1: recursion countdown (J1 counts 5..0).', 'dim');
+tlog('5) RUN on I7: computed reads -- referencing I6 calculates it on the spot (result lands in I8).', 'dim');
+
+ $('runbtn').onclick  = doRun;
+ $('stepbtn').onclick = doStep;
+ $('stopbtn').onclick = stopMachine;
+ $('undobtn').onclick = doUndo;
+ $('clrbtn').onclick  = () => { consoleEl.innerHTML = ''; tlog('console cleared.', 'dim'); };
+ $('savebtn').onclick = () => {
+  if (!target) { tlog('SAVE: select a target cell first.', 'err'); return; }
+  pushJournal(target.r, target.c);
+  grid[target.r][target.c] = {type:'SCRIPT', text: editorEl.value, val: null};
+  forgetComputed();
+  refreshCell(target.r, target.c);
+  tlog(`saved script to ${addrName(target.r,target.c)}.`, 'sys');
+};
+editorEl.addEventListener('input', () => {
+  if (target && grid[target.r][target.c].type === 'SCRIPT') {
+    grid[target.r][target.c].text = editorEl.value;
+    refreshCell(target.r, target.c);
+  }
+});
+ $('helpmenu').onclick = () => alert(
+  'FSL Workbench 0.2\n\n' +
+  'Each line is one step. Results go into cells with write.\n\n' +
+  'Forms:\n' +
+  '  expr                      -> result of the script\n' +
+  '  write [expr] into <cell|range>\n' +
+  '  if <a> <op> <b> then <1 step>\n' +
+  '  run <cell>                -> run another script for its effects\n' +
+  '  map in <r> [in <r>...] out <r> expr <x+y*x>   elementwise, x/y/z/w = inputs\n' +
+  '  setat(rowExpr, colExpr, valExpr)              computed-address write\n' +
+  '  linreg in <x> <y> out <r>\n' +
+  '  zscore in <r> out <r>   fill <expr> into <r>\n\n' +
+  'Using a script cell inside a calculation runs it on the spot and\n' +
+  'uses its result (remembered until the sheet changes).\n' +
+  'run is for actions; reference is for values.\n\n' +
+  'Functions: sum mean min max stddev count corr abs sqrt log exp floor round\n' +
+  '           at(row, col) -- computed-address read (1-based, A=1)\n' +
+  '           rand()\n\n' +
+  'Writes go through one choke point: script cells refuse writes.\n' +
+  'UNDO POKE reverts the last poke. Fuel (20,000 steps) bounds all\n' +
+  'execution, including calculated reads.'
+);
+document.addEventListener('keydown', e => {
+  if (e.key === 'F5')  { e.preventDefault(); doRun(); }
+  if (e.key === 'F8')  { e.preventDefault(); doStep(); }
+});
+</script>
+</body>
+</html>

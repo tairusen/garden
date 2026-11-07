@@ -11,10 +11,24 @@
       ]
     },
     {
-      "name": "games",
-      "label": "Games",
+      "name": "apps",
+      "label": "Apps",
       "items": [
-        { "page": "games/number-guesser.html" }
+        {
+          "name": "tools",
+          "label": "Tools",
+          "items": [
+          { "page": "apps/tools/formsp.html" }
+          ]
+        },
+        {
+          "name": "games",
+          "label": "Games",
+          "items": [
+          { "page": "apps/games/number-guesser.html", "icon": "game" },
+          { "page": "apps/games/null-horizon.html", "icon": "game"}
+        ]
+        }
       ]
     }
   ]

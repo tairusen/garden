@@ -225,7 +225,7 @@
 
   // ===== Explorer tree =====
   function fileIcon(path, iconOverride) {
-    const kind = iconOverride || (path === 'index.html' ? 'home' : path.startsWith('games/') ? 'game' : 'file');
+    const kind = iconOverride || (path === 'index.html' ? 'home' : path.includes('/games/') || path.startsWith('games/') ? 'game' : 'file');
     if (kind === 'home') return '<span class="icon home">⌂</span>';
     if (kind === 'game') return '<span class="icon game">▶</span>';
     return '<span class="icon">▬</span>';
@@ -299,7 +299,7 @@
     if (!knownPaths.has(path)) path = 'index.html'; // unknown route → home
     if (path === current) return;
     current = path;
-    frame.src = GARDEN.base + 'draft/' + path;
+    frame.src = GARDEN.contentBase + path;
     document.title = (titles[path] || 'Home') + " — Tairusen's Garden";
     renderCrumb(path);
     setActive(path);

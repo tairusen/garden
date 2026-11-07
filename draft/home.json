@@ -16,7 +16,7 @@
       "blurb": "How to reach me. Plain text, like a README from 2007."
     },
     {
-      "page": "games/number-guesser.html",
+      "page": "apps/games/number-guesser.html",
       "title": "Number Guesser",
       "blurb": "A small plain-JS guessing game. No dependencies, no mercy."
     }
