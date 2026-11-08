@@ -3,7 +3,7 @@
     { "page": "index.html", "label": "Home" },
     { "page": "introduction.html" },
     { "page": "ai-policy.html" },
-    { "page": "contact.html" },
+    { "page": "schedule.html" },
     { "name": "blogs",
       "label": "Blogs",
       "items": [
@@ -25,7 +25,7 @@
           "name": "games",
           "label": "Games",
           "items": [
-          { "page": "apps/games/number-guesser.html", "icon": "game" },
+          { "page": "apps/games/azoth.html", "icon": "game" },
           { "page": "apps/games/null-horizon.html", "icon": "game"}
         ]
         }

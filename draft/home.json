@@ -3,22 +3,22 @@
     {
       "page": "introduction.html",
       "title": "Introduction",
-      "blurb": "Who I am, what this garden is for, and why it looks like an IDE from 2009."
+      "blurb": "The man behind this mess."
     },
     {
       "page": "ai-policy.html",
       "title": "AI Policy",
-      "blurb": "Where and how AI tools were used in making this site, stated plainly."
+      "blurb": "The views that I, tairsuen, personally have on AI, and how I apply them in my work."
     },
     {
-      "page": "contact.html",
-      "title": "Contact",
-      "blurb": "How to reach me. Plain text, like a README from 2007."
+      "page": "schedule.html",
+      "title": "Schedule",
+      "blurb": "Soon to be updated."
     },
     {
-      "page": "apps/games/number-guesser.html",
-      "title": "Number Guesser",
-      "blurb": "A small plain-JS guessing game. No dependencies, no mercy."
+      "page": "apps/games/null-horizon.html",
+      "title": "Null Horizon",
+      "blurb": "I made AI make this a while ago. It's fun."
     }
   ]
 }

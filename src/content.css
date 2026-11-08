@@ -47,8 +47,8 @@ html[data-theme="solarized"] {
 html, body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: Verdana, sans-serif;
-  font-size: 13px;
+  font-family: 'Vernada', sans-serif;
+  font-size: 12px;
 }
 
 body { padding: 20px 28px; }

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Azoth</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#0b0a08;--ink:#e8dcc3;--dim:#9a8c6f;--faint:#7d7156;--brass:#c9a35c;--brassd:#7a6438;--line:#3a3122;--blood:#c04632;--life:#d8a84e;--gem:#5fd0c0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:radial-gradient(1000px 700px at 50% 20%,#191410,var(--bg) 70%);color:var(--ink);font:16px Alegreya,Georgia,serif;user-select:none}
+h1,h2,.cz{font-family:Cinzel,Georgia,serif}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:50}
+#app{max-width:1200px;margin:0 auto;padding:10px 14px 24px;display:grid;gap:14px 26px;grid-template-columns:1fr;position:relative}
+@media(min-width:960px){#app{grid-template-columns:300px 1fr 260px;align-items:start}header{grid-column:1/-1}}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:8px}
+#depth{font:700 17px Cinzel;letter-spacing:.1em;color:var(--brass)}#depth em{font:italic 15px Alegreya;color:var(--dim);letter-spacing:0}
+#prog{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--faint)}
+.dia{width:10px;height:10px;border:1px solid var(--brassd);transform:rotate(45deg)}.dia.done{background:var(--brassd)}.dia.cur{background:var(--brass);box-shadow:0 0 8px var(--brass)}
+.pill{border:1px solid var(--line);border-radius:20px;padding:4px 14px;font:700 15px Cinzel;color:var(--gem)}
+.ibtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:6px;width:32px;height:32px;cursor:pointer;font:700 14px Cinzel}
+.panel{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+#mName{margin:0;font-size:21px;text-align:center}#mTier{margin:0;font-style:italic;color:var(--dim);font-size:14px;text-align:center}
+#art{width:min(250px,60vw);transition:opacity .6s,transform .6s}#art.die{opacity:0;transform:scale(.7)}
+#art.hit{animation:shake .38s}#art.atk{animation:lunge .5s}
+#art svg{display:block;width:100%;height:auto;animation:bob 3.6s ease-in-out infinite}
+.hp{position:relative;width:100%;max-width:300px;height:20px;border:1px solid var(--brassd);border-radius:4px;background:#0d0b08;overflow:hidden}
+.hp .f{height:100%;width:100%;background:var(--blood);transition:width .3s}.hp.pl .f{background:var(--life)}
+.hp .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;text-shadow:0 1px 3px #000}
+#flavor{font-style:italic;color:var(--faint);font-size:14px;text-align:center;margin:0;min-height:20px}
+.plq{display:flex;gap:12px}.pq{border:1px solid var(--line);background:rgba(18,14,9,.6);border-radius:8px;padding:8px 12px;text-align:center;min-width:100px}
+.pq .l{font:600 9px Cinzel;letter-spacing:.18em;color:var(--faint);margin-bottom:4px}.pq svg{width:32px;height:32px}
+#pips{display:flex;gap:5px;justify-content:center;margin-top:5px;min-height:8px}.pip{width:7px;height:7px;border:1px solid var(--brassd);transform:rotate(45deg)}.pip.on{background:var(--blood);border-color:var(--blood)}
+#boardWrap{justify-self:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(12,9,6,.6)}
+#board{position:relative;width:min(520px,calc(100vw - 52px));aspect-ratio:1/1;touch-action:none;cursor:pointer}
+#hint{text-align:center;font-style:italic;color:var(--faint);font-size:13px;margin:8px 0 0}
+.tile{position:absolute;width:calc(100%/7);height:calc(100%/7);padding:3px;transition:transform .22s cubic-bezier(.35,1.3,.55,1)}
+.face{position:relative;width:100%;height:100%;border-radius:7px;background:#17130e;border:1px solid #2b241a;display:flex;align-items:center;justify-content:center}
+.face>svg.g{width:72%;height:72%;pointer-events:none}
+.tile.sel .face{border-color:var(--brass);box-shadow:0 0 14px rgba(201,163,92,.4)}
+.tile.clr .face{animation:clr .3s forwards}.tile.bad .face{animation:shake .3s}
+.gi{position:absolute;right:4%;bottom:4%;width:28%;height:28%;pointer-events:none}
+#stats .s{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px dashed #241e14;font-size:15px;color:var(--dim)}#stats b{color:var(--ink)}
+#alch{width:80px}#alch svg{width:100%}#alch.hit{animation:shake .4s}
+#log{width:100%;max-height:150px;overflow-y:auto;font-size:13.5px;line-height:1.45;color:var(--dim)}#log p{margin:0 0 5px}#log b{color:var(--ink)}
+.tag{font:600 10px Cinzel;letter-spacing:.28em;color:var(--faint);text-align:center;width:100%}
+#floats{position:fixed;inset:0;pointer-events:none;z-index:60}
+.fl{position:absolute;transform:translate(-50%,-50%);font:700 21px Cinzel;text-shadow:0 2px 8px #000;animation:up 1.1s ease-out forwards;white-space:nowrap}
+.fl.w{color:var(--brass);font-size:26px}.fl.h{color:var(--blood)}.fl.g{color:var(--gem);font-size:16px}.fl.ok{color:#9ec26a}
+#banner{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center;padding:0 20px}
+#banner.show{opacity:1}#bm{font:700 clamp(28px,6vw,46px) Cinzel;letter-spacing:.12em;margin:0;text-shadow:0 4px 30px #000}#bs{font-style:italic;font-size:17px;color:var(--dim);margin:8px 0 0}
+.ov{position:fixed;inset:0;z-index:80;background:rgba(6,5,3,.9);display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px;transition:opacity .3s}
+.ov.hidden{opacity:0;pointer-events:none;visibility:hidden}
+.box{max-width:640px;text-align:center;padding:20px}
+.box h1{font:700 clamp(40px,10vw,64px) Cinzel;letter-spacing:.28em;text-indent:.28em;margin:8px 0 0}
+.sub{font:600 12px Cinzel;letter-spacing:.5em;color:var(--brass);margin:4px 0 18px}
+.rules{text-align:left;max-width:520px;margin:16px auto 20px;padding:0;list-style:none;color:var(--dim);line-height:1.5}.rules li{margin:8px 0;padding-left:18px;position:relative}
+.rules li:before{content:'';position:absolute;left:1px;top:8px;width:6px;height:6px;background:var(--brassd);transform:rotate(45deg)}.rules b{color:var(--ink)}
+.btn{font:600 12.5px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);background:#1a1510;border:1px solid var(--brassd);padding:11px 22px;border-radius:5px;cursor:pointer}
+.btn.p{border-color:var(--brass);color:var(--brass)}.btn:disabled{opacity:.35;cursor:default}.btn.s{padding:7px 12px;font-size:11px}
+.best{font-style:italic;color:var(--faint);margin:14px 0 0}
+.shop{max-width:760px;width:100%;background:#0f0c08;border:1px solid var(--brassd);border-radius:14px;padding:22px;text-align:center}
+.shop h2{color:var(--brass);letter-spacing:.12em;margin:0}
+#offers{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:18px 0}
+.offer{width:200px;border:1px solid var(--line);background:#14100a;border-radius:9px;padding:12px;text-align:left}
+.offer h3{font:700 14px Cinzel;margin:0 0 6px;display:flex;gap:8px;align-items:center}.offer h3 svg{width:22px;height:22px;flex:none}
+.offer p{color:var(--dim);font-size:13.5px;margin:0 0 10px;min-height:36px}.of{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--faint)}
+.sf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ovg{display:grid;grid-template-columns:auto auto;gap:6px 24px;justify-content:center;margin:16px 0 20px}.ovg span{text-align:right;color:var(--dim)}
+@keyframes bob{50%{transform:translateY(-7px)}}
+@keyframes shake{25%{transform:translateX(-7px)}60%{transform:translateX(6px)}}
+@keyframes lunge{35%{transform:translateY(40px) scale(1.05)}}
+@keyframes clr{35%{transform:scale(1.15);filter:brightness(2.4)}to{transform:scale(0);opacity:0}}
+@keyframes up{0%{opacity:0}15%{opacity:1}to{opacity:0;margin-top:-50px}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="app">
+  <header>
+    <div id="depth"></div><div id="prog"></div>
+    <div style="display:flex;gap:8px;align-items:center"><span class="pill">&#9670; <b id="gems">0</b></span><button class="ibtn" id="muteBtn" title="Sound">&#9835;</button><button class="ibtn" id="helpBtn" title="Help">?</button></div>
+  </header>
+  <section class="panel">
+    <h2 id="mName"></h2><p id="mTier"></p>
+    <div id="art"></div>
+    <div class="hp" id="mHp"><div class="f"></div><div class="n"></div></div>
+    <p id="flavor"></p>
+    <div class="plq">
+      <div class="pq"><div class="l">BANE &times;2</div><div id="bane"></div></div>
+      <div class="pq"><div class="l">IT HUNGERS</div><div id="hunger"></div><div id="pips"></div></div>
+    </div>
+  </section>
+  <section>
+    <div id="boardWrap"><div id="board"></div></div>
+    <p id="hint">Drag a sigil into its neighbor, or tap two adjacent sigils, to swap.</p>
+  </section>
+  <aside class="panel">
+    <div class="tag">THE ADEPT</div>
+    <div id="alch"><svg viewBox="0 0 120 150"><ellipse cx="60" cy="141" rx="34" ry="6" fill="#000" opacity=".4"/><path d="M60 28C42 32 33 50 31 70 27 97 25 121 27 140H93C95 121 93 97 89 70 87 50 78 32 60 28Z" fill="#211b12" stroke="#6b5a38" stroke-width="2"/><path d="M60 12C44 16 37 33 39 49 46 55 74 55 81 49 83 33 76 16 60 12Z" fill="#2a2318" stroke="#6b5a38" stroke-width="2"/><ellipse cx="60" cy="41" rx="13" ry="11" fill="#070503"/><circle cx="55" cy="41" r="1.7" fill="#ffd166"/><circle cx="65" cy="41" r="1.7" fill="#ffd166"/><path d="M90 84h12v7l6 14q2 6-2 7.5H86q-4-1.5-2-7.5l6-14z" fill="#14100a" stroke="#6b5a38" stroke-width="1.6"/><path d="M88 101h16l3 6.5q1 3-2 3H87q-3 0-2-3z" fill="#e8b74a" opacity=".85"/></svg></div>
+    <div class="hp pl" id="pHp"><div class="f"></div><div class="n"></div></div>
+    <div id="stats" style="width:100%"></div>
+    <div class="tag">CHRONICLE</div><div id="log"></div>
+  </aside>
+</div>
+<div id="floats"></div>
+<div id="banner"><h1 id="bm"></h1><p id="bs"></p></div>
+
+<div class="ov" id="title"><div class="box">
+  <div id="tg" style="display:flex;gap:14px;justify-content:center"></div>
+  <h1>AZOTH</h1><p class="sub">A MATCH-THREE DESCENT</p>
+  <ul class="rules">
+    <li>Match <b>3+ sigils</b> to strike the creature. Cascades chain for escalating damage.</li>
+    <li>Each beast has a <b>Bane</b>: matching that sigil wounds it double.</li>
+    <li>It also <b>hungers</b> for one sigil. Match it, or dawdle four moves, and it strikes. Then the hunger moves.</li>
+    <li>Some sigils carry <b>gemstones</b>. Spend them at the Hermit's Nook before each Warden.</li>
+    <li>Clear every chamber, slay the Warden, and <b>descend</b>. The depths never end.</li>
+  </ul>
+  <button class="btn p" id="startBtn">Begin the Descent</button><p class="best" id="tBest"></p>
+</div></div>
+
+<div class="ov hidden" id="shop"><div class="shop">
+  <h2>THE HERMIT'S NOOK</h2><p id="sFlavor" style="font-style:italic;color:var(--dim)"></p>
+  <div id="offers"></div>
+  <div class="sf"><button class="btn s" id="reroll"></button><b class="cz" style="color:var(--gem)" id="sGems"></b><button class="btn p" id="leave">Face the Warden</button></div>
+</div></div>
+
+<div class="ov hidden" id="over"><div class="box">
+  <h1 style="font-size:34px;letter-spacing:.1em;text-indent:0;color:var(--blood)">THE DEPTH CLAIMS YOU</h1>
+  <p id="oFlavor" style="font-style:italic;color:var(--dim)"></p><div class="ovg" id="oStats"></div>
+  <button class="btn p" id="again">Descend Again</button><p class="best" id="oBest"></p>
+</div></div>
+
+<div class="ov hidden" id="help"><div class="box"><h2 class="cz">THE CRAFT</h2>
+  <ul class="rules">
+    <li><b>Swap</b> adjacent sigils. Only swaps that make a match of 3+ will hold.</li>
+    <li><b>Bane</b>: the creature takes double damage from this sigil.</li>
+    <li><b>Hunger</b>: match it and the creature attacks at once. Otherwise its wrath builds one pip per move; it strikes at the last pip.</li>
+    <li><b>Cascades</b> multiply damage; 4- and 5-matches hit harder.</li>
+    <li>Death is permanent. Your deepest descent is remembered.</li>
+  </ul><button class="btn" id="closeHelp">Return</button></div></div>
+
+<script>
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+var rand=function(a,b){return a+Math.random()*(b-a)};
+var ri=function(a,b){return Math.floor(rand(a,b+1))};
+var pick=function(a){return a[Math.floor(Math.random()*a.length)]};
+function roman(n){var M=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']],s='';M.forEach(function(m){while(n>=m[0]){s+=m[1];n-=m[0]}});return s||'I'}
+var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+function seeded(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* glyphs */
+var GL=[
+ {n:'Fire',c:'#e25641',p:'M20 6.5L33 32H7Z'},{n:'Water',c:'#46a6c9',p:'M20 33.5L33 8H7Z'},
+ {n:'Air',c:'#ece2c6',p:'M20 6.5L33 32H7ZM12 22.5H28'},{n:'Earth',c:'#8fae4c',p:'M20 33.5L33 8H7ZM12 17.5H28'},
+ {n:'Sulfur',c:'#e3a92f',p:'M20 4.5L28.5 19H11.5ZM20 19V35M13.5 27H26.5'},{n:'Salt',c:'#aab8c6',p:'M7 20A13 13 0 1 0 33 20A13 13 0 1 0 7 20M8.5 20H31.5'}];
+var N=GL.length, SIZE=7;
+function gsvg(i,cls){return '<svg class="'+(cls||'')+'" viewBox="0 0 40 40" fill="none" stroke="'+GL[i].c+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+GL[i].p+'"/></svg>'}
+var GEMSVG='<svg class="gi" viewBox="0 0 20 20"><path d="M10 2L17 8L10 18L3 8ZM3 8H17M10 2L7.5 8L10 18M10 2L12.5 8L10 18" fill="rgba(95,208,192,.3)" stroke="#5fd0c0" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+var elName=function(i){return '<b style="color:'+GL[i].c+'">'+GL[i].n+'</b>'};
+
+var ADJ=['Ashen','Gloom-Scaled','Whispering','Bilious','Gilded','Hollow-Eyed','Weeping','Umbral','Festering','Pale','Starved','Waxen','Grinning','Dreaming'];
+var NOUN=['Viper','Lurker','Husk','Sentinel','Maw','Shade','Griever','Stalker','Wisp','Revenant','Mandrake','Chimera','Gargoyle','Leech'];
+var BA=['Voraq','Morgeth','Sable','Ushkar','Thessaly','Ozhek','Vellum','Cindrath'],BB=['the Unblinking','Herald of Azoth','Keeper of the Seals','the Ninefold Maw','Mother of Salt','the Hollow Tyrant'];
+var FLAV=['Its scales drink the lantern-light.','It counts your heartbeats, waiting.','Salt weeps from the cracks in its hide.','Its shadow moves a moment too late.','It remembers being worshipped.','Candleflame leans away from it.'];
+var BIA=['Ashen','Drowned','Fungal','Gilded','Hollow','Umbral','Frostbound','Smoldering','Sunken','Bone','Glass','Verdant'],BIB=['Steps','Hollows','Vaults','Gardens','Warrens','Reach','Sanctorum','Cisterns','Archives','Terraces','Foundry','Nave'];
+var HERMIT=['"Deeper still, hmm? Then stock up, sweet fool."','"Gems buy comfort. Comfort buys breath."','"The Warden below has eaten better souls than yours."'];
+var OVERL=['"Another vessel, another lesson." - the Hermit','"The deep is patient. You were not."'];
+
+/* sound */
+var SFX={ctx:null,on:store.get('azoth-mute')!=='1',
+ init:function(){if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume()},
+ t:function(f,d,type,v,sl){if(!this.on||!this.ctx)return;try{var c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+sl),n+d);g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(v||.08,n+.015);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}};
+
+/* particles */
+var FX={cv:null,cx:null,ps:[],
+ init:function(){this.cv=$('#fx');this.cx=this.cv.getContext('2d');var s=this;function rs(){s.cv.width=innerWidth;s.cv.height=innerHeight}window.addEventListener('resize',rs);rs();requestAnimationFrame(function l(){s.draw();requestAnimationFrame(l)})},
+ burst:function(x,y,col,n){for(var i=0;i<n;i++){var a=Math.random()*6.28,v=rand(1,3);this.ps.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,l:1,c:col})}},
+ draw:function(){var c=this.cx;c.clearRect(0,0,this.cv.width,this.cv.height);for(var i=this.ps.length-1;i>=0;i--){var p=this.ps[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.07;p.l-=.025;if(p.l<=0){this.ps.splice(i,1);continue}c.globalAlpha=p.l;c.fillStyle=p.c;c.beginPath();c.arc(p.x,p.y,2.2,0,7);c.fill()}c.globalAlpha=1}};
+
+/* monster art */
+function monsterSVG(seed,boss){
+ var R=seeded(seed),pal=pick([['#241016','#a03a44','#ff9c5b'],['#101d16','#4f9a63','#b7ff6e'],['#181322','#6b56a0','#8ef0ff'],['#1d160f','#a07b35','#ffd166'],['#0e181d','#3d7d8c','#8ef0e0']]);
+ var cx=100,cy=112,rx=50+R()*20,ry=46+R()*14,n=10,pts=[],i,s='';
+ for(i=0;i<n;i++){var a=i/n*6.283-1.57,j=.8+R()*.4;pts.push([cx+Math.cos(a)*rx*j,cy+Math.sin(a)*ry*j])}
+ var d='M'+(pts[0][0]+pts[1][0])/2+' '+(pts[0][1]+pts[1][1])/2;
+ for(i=1;i<=n;i++){var p=pts[i%n],q=pts[(i+1)%n];d+='Q'+p[0]+' '+p[1]+' '+(p[0]+q[0])/2+' '+(p[1]+q[1])/2}
+ s+='<ellipse cx="100" cy="'+(cy+ry+14)+'" rx="'+rx*.75+'" ry="8" fill="#000" opacity=".35"/>';
+ var sp=boss?5:ri(0,3);
+ for(i=0;i<sp;i++){var sa=-2.7+2.3*(sp>1?i/(sp-1):.5),bx=cx+Math.cos(sa)*rx,by=cy+Math.sin(sa)*ry;
+  s+='<path d="M'+(bx-8)+' '+by+'L'+(cx+Math.cos(sa)*rx*1.3)+' '+(cy+Math.sin(sa)*ry*1.3)+'L'+(bx+8)+' '+by+'Z" fill="'+pal[0]+'" stroke="'+pal[1]+'" stroke-width="2"/>'}
+ s+='<path d="'+d+'Z" fill="'+pal[0]+'" stroke="'+pal[1]+'" stroke-width="3"/>';
+ var ec=boss?ri(3,5):ri(1,2),ey=cy-ry*.3;
+ for(i=0;i<ec;i++){var ex=cx+(i-(ec-1)/2)*(ec===2?30:20),er=3+R()*1.6;
+  s+='<circle cx="'+ex+'" cy="'+ey+'" r="'+er*2.6+'" fill="'+pal[2]+'" opacity=".16"/><circle cx="'+ex+'" cy="'+ey+'" r="'+er+'" fill="'+pal[2]+'"/><ellipse cx="'+ex+'" cy="'+ey+'" rx="'+er*.32+'" ry="'+er*.8+'" fill="#0a0806"/>'}
+ var my=cy+ry*.42,w=rx*.55,m='M'+(cx-w)+' '+my;for(i=1;i<=6;i++)m+='L'+(cx-w+w*2*i/6)+' '+(my+(i%2?7:-2));
+ s+='<path d="'+m+'" fill="none" stroke="'+pal[1]+'" stroke-width="2.5" stroke-linejoin="round"/>';
+ return '<svg viewBox="0 0 200 200">'+s+'</svg>'}
+
+/* state */
+var depth=1,ch=0,nch=3,dName='',st='title',busy=true,P=null,M=null,S=null,grid=[],tid=0,sel=null,drag=null,offers=[],board;
+function newPlayer(){return {hp:60,max:60,pow:3,arm:0,crit:.05,casc:0,gemC:.06,gemB:0,leech:0,att:[0,0,0,0,0,0],bers:0,bane:0,over:0,gems:0,own:{}}}
+var best=function(){return +store.get('azoth-best')||0};
+
+/* board */
+function pos(t){t.el.style.transform='translate('+t.c*100+'%,'+t.r*100+'%)'}
+function mkTile(r,c,type){
+ var t={id:tid++,r:r,c:c,type:type==null?ri(0,N-1):type,gem:Math.random()<Math.min(.6,P.gemC),el:document.createElement('div')};
+ t.el.className='tile';t.el._t=t;
+ t.el.innerHTML='<div class="face">'+gsvg(t.type,'g')+(t.gem?GEMSVG:'')+'</div>';
+ pos(t);board.appendChild(t.el);return t}
+function buildBoard(){
+ board.innerHTML='';grid=[];sel=null;
+ for(var r=0;r<SIZE;r++){var row=[];
+  for(var c=0;c<SIZE;c++){var ty,g=0;
+   do{ty=ri(0,N-1);g++}while(g<30&&((c>1&&row[c-1].type===ty&&row[c-2].type===ty)||(r>1&&grid[r-1][c].type===ty&&grid[r-2][c].type===ty)));
+   row.push(mkTile(r,c,ty))}
+  grid.push(row)}}
+function at(r,c){return r<0||c<0||r>=SIZE||c>=SIZE?null:grid[r][c]}
+function swapM(a,b){grid[a.r][a.c]=b;grid[b.r][b.c]=a;var r=a.r,c=a.c;a.r=b.r;a.c=b.c;b.r=r;b.c=c;pos(a);pos(b)}
+function findRuns(){
+ var runs=[],r,c,k,i,t;
+ for(r=0;r<SIZE;r++){c=0;while(c<SIZE){t=grid[r][c];k=c+1;while(k<SIZE&&grid[r][k].type===t.type)k++;if(k-c>=3)runs.push({type:t.type,tiles:grid[r].slice(c,k)});c=k}}
+ for(c=0;c<SIZE;c++){r=0;while(r<SIZE){t=grid[r][c];k=r+1;while(k<SIZE&&grid[k][c].type===t.type)k++;if(k-r>=3){var ts=[];for(i=r;i<k;i++)ts.push(grid[i][c]);runs.push({type:t.type,tiles:ts})}r=k}}
+ return runs}
+function hasMove(){
+ function sw(a,b){var x=a.type;a.type=b.type;b.type=x}
+ for(var r=0;r<SIZE;r++)for(var c=0;c<SIZE;c++){
+  var o=[[0,1],[1,0]];
+  for(var k=0;k<2;k++){var b=at(r+o[k][0],c+o[k][1]);if(!b)continue;var a=grid[r][c];sw(a,b);var ok=findRuns().length>0;sw(a,b);if(ok)return true}}
+ return false}
+function ensureMoves(){
+ if(hasMove())return;var g=0,r,c;
+ do{for(r=0;r<SIZE;r++)for(c=0;c<SIZE;c++)grid[r][c].type=ri(0,N-1)}while((findRuns().length||!hasMove())&&++g<200);
+ for(r=0;r<SIZE;r++)for(c=0;c<SIZE;c++){var t=grid[r][c];t.el.firstChild.innerHTML=gsvg(t.type,'g')+(t.gem?GEMSVG:'')}
+ log('<i>The sigils churn and realign...</i>')}
+function gravity(){
+ for(var c=0;c<SIZE;c++){var w=SIZE-1,r;
+  for(r=SIZE-1;r>=0;r--){var t=grid[r][c];if(t){if(w!==r){grid[w][c]=t;grid[r][c]=null;t.r=w;pos(t)}w--}}
+  var need=w+1;
+  for(r=need-1;r>=0;r--){var nt=mkTile(r,c);grid[r][c]=nt;nt.el.style.transform='translate('+c*100+'%,'+(r-need)*100+'%)'}}
+ void board.offsetWidth;
+ for(var r2=0;r2<SIZE;r2++)for(var c2=0;c2<SIZE;c2++)pos(grid[r2][c2]);
+ return sleep(270)}
+
+/* input */
+function clearSel(){if(sel){sel.el.classList.remove('sel');sel=null}}
+function initInput(){
+ board.addEventListener('pointerdown',function(e){
+  if(busy||st!=='combat')return;SFX.init();e.preventDefault();
+  var el=e.target.closest('.tile');if(el)drag={t:el._t,x:e.clientX,y:e.clientY,done:false}});
+ window.addEventListener('pointermove',function(e){
+  if(!drag||drag.done||busy)return;
+  var dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<14)return;
+  drag.done=true;var dr=0,dc=0;if(Math.abs(dx)>Math.abs(dy))dc=dx>0?1:-1;else dr=dy>0?1:-1;
+  var t2=at(drag.t.r+dr,drag.t.c+dc),t1=drag.t;clearSel();if(t2)trySwap(t1,t2)});
+ window.addEventListener('pointerup',function(){
+  if(!drag)return;var t=drag.t,done=drag.done;drag=null;
+  if(done||busy||st!=='combat')return;
+  if(sel===t){clearSel();return}
+  if(sel&&Math.abs(sel.r-t.r)+Math.abs(sel.c-t.c)===1){var a=sel;clearSel();trySwap(a,t)}
+  else{clearSel();sel=t;t.el.classList.add('sel')}});
+ window.addEventListener('pointercancel',function(){drag=null})}
+
+/* combat */
+function runDmg(tiles,ci){
+ var len=tiles.length,ty=tiles[0].type,size=len>=5?2.2+P.over:len===4?1.5+P.over:1;
+ var el=1+P.att[ty],weak=ty===M.weak;if(weak)el*=2+P.bane;
+ var d=P.pow*len*size*el*Math.pow(1.5+P.casc,ci);
+ if(P.hp<P.max/2)d*=1+P.bers;if(Math.random()<P.crit)d*=2.5;
+ return {d:Math.max(1,Math.round(d)),weak:weak}}
+function hitMon(d,weak,ty){
+ M.hp=Math.max(0,M.hp-d);S.dmg+=d;
+ var a=$('#art'),r=a.getBoundingClientRect();
+ float(r.left+r.width/2+rand(-30,30),r.top+r.height*.3,(weak?'WEAK ':'')+d,weak?'w':'');
+ a.classList.remove('hit');void a.offsetWidth;a.classList.add('hit');
+ FX.burst(r.left+r.width/2,r.top+r.height/2,GL[ty].c,14);SFX.t(110,.12,'triangle',.12,-40);
+ log(weak?M.name+' is scorched by its bane - <b>'+d+'</b>!':M.name+' takes <b>'+d+'</b> from '+elName(ty)+'.');
+ renderMon()}
+async function monAttack(){
+ var a=$('#art');a.classList.remove('atk');void a.offsetWidth;a.classList.add('atk');SFX.t(90,.3,'sawtooth',.05,60);
+ await sleep(280);
+ var d=Math.max(1,Math.round(M.dmg*rand(.85,1.18)-P.arm));P.hp=Math.max(0,P.hp-d);
+ var al=$('#alch');al.classList.remove('hit');void al.offsetWidth;al.classList.add('hit');
+ var r=al.getBoundingClientRect();float(r.left+r.width/2,r.top+10,'-'+d,'h');
+ log('It strikes you for <b style="color:var(--blood)">'+d+'</b>.');SFX.t(160,.25,'sawtooth',.1,-90);renderPlayer();
+ await sleep(420);
+ if(P.hp<=0){gameOver();return}
+ M.pips=0;var ni=M.intent;while(ni===M.intent)ni=ri(0,N-1);M.intent=ni;renderMon()}
+
+async function trySwap(a,b){
+ if(busy||st!=='combat'||a===b)return;
+ busy=true;clearSel();swapM(a,b);await sleep(230);
+ if(!findRuns().length){swapM(a,b);await sleep(230);a.el.classList.add('bad');b.el.classList.add('bad');SFX.t(180,.12,'square',.04,-40);
+  setTimeout(function(){a.el.classList.remove('bad');b.el.classList.remove('bad')},350);busy=false;return}
+ S.moves++;SFX.t(220,.06,'triangle',.05);
+ await resolve();
+ if(st==='combat')busy=false}
+
+async function resolve(){
+ var casc=0,gems=0,tiles=0,matched={},any=false;
+ for(;;){
+  if(st!=='combat')return;
+  var runs=findRuns();if(!runs.length)break;
+  casc++;var seen={},list=[],i,j,wd=0,ww=false;
+  runs.forEach(function(run){run.tiles.forEach(function(t){if(!seen[t.id]){seen[t.id]=1;list.push(t)}});
+   var rs=runDmg(run.tiles,casc-1);wd+=rs.d;ww=ww||rs.weak;matched[run.type]=1;any=true});
+  tiles+=list.length;
+  list.forEach(function(t){var r=t.el.getBoundingClientRect();FX.burst(r.left+r.width/2,r.top+r.height/2,GL[t.type].c,8);
+   if(t.gem){gems+=1+P.gemB;FX.burst(r.left+r.width/2,r.top+r.height/2,'#5fd0c0',6)}t.el.classList.add('clr')});
+  SFX.t(392*Math.pow(1.19,Math.min(casc,8)),.12,'sine',.1);
+  await sleep(150);hitMon(wd,ww,runs[0].type);await sleep(200);
+  list.forEach(function(t){if(grid[t.r][t.c]===t)grid[t.r][t.c]=null;t.el.remove()});
+  if(M.hp<=0){await killMon();return}
+  await gravity();await sleep(100)}
+ if(gems){P.gems+=gems;S.gems+=gems;SFX.t(1240,.1,'sine',.07,600);renderHead();
+  var br=board.getBoundingClientRect();float(br.right-40,br.top+24,'&#9670; +'+gems,'g');log('Gathered <b style="color:var(--gem)">'+gems+'</b> gemstones.')}
+ if(P.leech&&tiles)heal(tiles*P.leech);
+ if(M.hp>0){
+  if(any&&matched[M.intent]){log('The '+M.name+' drinks the '+elName(M.intent)+' sigils - <i>it strikes!</i>');await sleep(250);await monAttack()}
+  else{M.pips++;if(M.pips>=M.pipsMax){log('<i>Its wrath crests - it attacks!</i>');await sleep(250);await monAttack()}else renderMon()}}
+ if(st==='combat')ensureMoves()}
+
+async function killMon(){
+ await sleep(350);var a=$('#art');a.classList.add('die');var r=a.getBoundingClientRect();
+ FX.burst(r.left+r.width/2,r.top+r.height/2,'#c9a35c',32);SFX.t(349,.3,'triangle',.08,-120);S.slain++;
+ var b=2+depth+ri(0,2)+(M.boss?12:0);P.gems+=b;S.gems+=b;renderHead();
+ log('The <b>'+M.name+'</b> is unmade. It leaves <b style="color:var(--gem)">'+b+'</b> gemstones.');
+ await sleep(850);
+ if(M.boss){await descend();return}
+ ch++;
+ if(ch>=nch){openShop();return}
+ await banner('Chamber Cleared','The way onward opens...',1300);
+ nextChamber()}
+
+/* flow */
+function mkMon(boss){
+ var hp=Math.round(20*Math.pow(1.42,depth-1)*(1+.12*ch)*rand(.85,1.2)),dmg=(3+2.2*depth)*rand(.9,1.1);
+ if(boss){hp=Math.round(hp*3.1);dmg*=1.5}
+ return {name:boss?pick(BA)+', '+pick(BB):pick(ADJ)+' '+pick(NOUN),flavor:pick(FLAV),seed:ri(1,1e9),hp:hp,max:hp,dmg:dmg,weak:ri(0,N-1),intent:ri(0,N-1),pips:0,pipsMax:boss?3:Math.max(3,4-Math.floor((depth-1)/5)),boss:!!boss}}
+function setMon(boss){M=mkMon(boss);buildBoard();renderMon();renderProg()}
+function nextChamber(){setMon(false);busy=false}
+async function descend(){
+ st='transit';busy=true;depth++;if(depth>best())store.set('azoth-best',''+depth);
+ ch=0;nch=Math.min(5,3+Math.floor((depth-1)/3));dName=pick(BIA)+' '+pick(BIB);
+ heal(Math.ceil(P.max*.2),true);log('You bind your wounds and press on into the dark.');
+ setMon(false);renderHead();
+ await banner('Depth '+roman(depth),dName,1600);await banner(M.name,$('#mTier').textContent,1000);
+ st='combat';busy=false}
+async function startRun(){
+ P=newPlayer();depth=1;ch=0;nch=3;dName=pick(BIA)+' '+pick(BIB);S={slain:0,dmg:0,gems:0,moves:0};
+ $('#log').innerHTML='';log('You descend into the <b>'+dName+'</b>. The air tastes of tin and smoke.');
+ setMon(false);renderHead();renderPlayer();
+ ['#title','#over','#shop'].forEach(function(s){$(s).classList.add('hidden')});
+ st='combat';busy=false;
+ await banner('Depth '+roman(depth),dName,1400)}
+function gameOver(){
+ st='over';busy=true;if(depth>best())store.set('azoth-best',''+depth);
+ SFX.t(196,.5,'triangle',.1,-60);
+ $('#oFlavor').textContent=pick(OVERL);
+ $('#oStats').innerHTML=[['Depth Reached',roman(depth)+' - '+dName],['Foes Slain',S.slain],['Damage Dealt',S.dmg],['Moves',S.moves],['Gems Gathered',S.gems]].map(function(x){return '<span>'+x[0]+'</span><b class="cz">'+x[1]+'</b>'}).join('');
+ $('#oBest').textContent='Deepest descent: Depth '+roman(best());
+ setTimeout(function(){$('#over').classList.remove('hidden')},500)}
+
+/* shop */
+var UP=[
+ ['power','Sharpened Sigil','+2 power on every match.',14,function(){P.pow+=2}],
+ ['vigor','Vitality Draught','+25 max health, heal 25.',12,function(){P.max+=25;heal(25,true)}],
+ ['crit','Brew of Severance','+8% crit chance (x2.5).',16,function(){P.crit+=.08}],
+ ['res','Resonant Retort','Cascades 40% stronger per step.',18,function(){P.casc+=.4}],
+ ['pros',"Prospector's Eye",'+5% gemstone chance.',15,function(){P.gemC+=.05}],
+ ['chal','Gilded Chalice','Each gemstone worth +1.',20,function(){P.gemB+=1}],
+ ['mail','Salt-Warded Mail','+2 armor.',15,function(){P.arm+=2}],
+ ['leech','Leeching Salt','Heal 1 per sigil cleared.',22,function(){P.leech+=1}],
+ ['bers','Crimson Fervor','+50% damage below half health.',14,function(){P.bers+=.5}],
+ ['bane','Baneseeker','+35% damage vs weakness.',18,function(){P.bane+=.35}],
+ ['over','Overload','4+ matches hit 40% harder.',16,function(){P.over+=.4}]];
+GL.forEach(function(g,i){UP.push(['att'+i,'Attunement: '+g.n,g.n+' sigils deal 60% more damage.',12,function(){P.att[i]+=.6},i])});
+var upCost=function(u){return Math.max(1,Math.round(u[3]*Math.pow(1.45,P.own[u[0]]||0)*(1+.06*(depth-1))))};
+var rrCost=function(){return 3+depth};
+function roll(){offers=UP.slice().sort(function(){return Math.random()-.5}).slice(0,3)}
+function openShop(){st='shop';busy=true;renderProg();$('#sFlavor').textContent=pick(HERMIT);roll();renderShop();$('#shop').classList.remove('hidden')}
+function renderShop(){
+ $('#sGems').innerHTML='&#9670; '+P.gems;var box=$('#offers');box.innerHTML='';
+ offers.forEach(function(u,i){var cost=upCost(u),d=document.createElement('div');d.className='offer';
+  d.innerHTML='<h3>'+(u[5]!=null?gsvg(u[5]):'')+u[1]+'</h3><p>'+u[2]+'</p><div class="of"><span>Owned '+(P.own[u[0]]||0)+'</span><button class="btn s" data-i="'+i+'"'+(P.gems<cost?' disabled':'')+'>'+cost+' &#9670;</button></div>';
+  box.appendChild(d)});
+ $('#reroll').innerHTML='Reroll &middot; '+rrCost()+' &#9670;';$('#reroll').disabled=P.gems<rrCost()}
+async function leaveShop(){
+ if(st!=='shop')return;st='transit';$('#shop').classList.add('hidden');
+ setMon(true);SFX.t(98,.4,'sawtooth',.06);
+ await banner(M.name,'Warden of the '+dName,1700);st='combat';busy=false}
+
+/* UI */
+function float(x,y,h,cls){var d=document.createElement('div');d.className='fl '+(cls||'');d.innerHTML=h;d.style.left=x+'px';d.style.top=y+'px';$('#floats').appendChild(d);setTimeout(function(){d.remove()},1200)}
+function log(h){var el=$('#log');el.insertAdjacentHTML('beforeend','<p>'+h+'</p>');while(el.children.length>40)el.firstChild.remove();el.scrollTop=el.scrollHeight}
+var bTimer=null,bRes=null;
+function banner(m,s,ms){
+ return new Promise(function(res){
+  if(bRes){bRes();bRes=null}clearTimeout(bTimer);bRes=res;
+  $('#bm').textContent=m;$('#bs').textContent=s||'';$('#banner').classList.add('show');
+  bTimer=setTimeout(function(){$('#banner').classList.remove('show');setTimeout(function(){if(bRes===res){bRes=null;res()}},320)},ms||1500)})}
+function heal(n,quiet){var b=P.hp;P.hp=Math.min(P.max,P.hp+n);var g=P.hp-b;if(g>0){renderPlayer();if(!quiet){var r=$('#alch').getBoundingClientRect();float(r.left+r.width/2,r.top+16,'+'+g,'ok')}}}
+function renderProg(){
+ var h='',boss=M&&M.boss&&st!=='shop',i;
+ for(i=0;i<nch;i++)h+='<i class="dia'+(i<ch?' done':i===ch&&!boss&&st!=='shop'?' cur':'')+'"></i>';
+ h+='<span style="'+(st==='shop'?'color:var(--brass)':'')+'">&#9879;</span><span style="'+(boss?'color:var(--brass)':'')+'">&#9760;</span>';
+ $('#prog').innerHTML=h}
+function renderHead(){$('#gems').textContent=P.gems;$('#depth').innerHTML='DEPTH '+roman(depth)+' &middot; <em>'+dName+'</em>'}
+function renderMon(){
+ $('#mName').textContent=M.name;
+ $('#mTier').textContent=M.boss?'Warden of the '+dName:'Chamber '+roman(ch+1)+' of the '+dName;
+ $('#flavor').textContent='"'+M.flavor+'"';
+ var a=$('#art');if(a._seed!==M.seed){a._seed=M.seed;a.className='';a.innerHTML=monsterSVG(M.seed,M.boss);a.style.width=M.boss?'min(300px,70vw)':''}
+ $('#mHp .f').style.width=M.hp/M.max*100+'%';$('#mHp .n').textContent=M.hp+' / '+M.max;
+ $('#bane').innerHTML=gsvg(M.weak);$('#hunger').innerHTML=gsvg(M.intent);
+ var p='';for(var i=0;i<M.pipsMax;i++)p+='<span class="pip'+(i<M.pips?' on':'')+'"></span>';$('#pips').innerHTML=p}
+function renderPlayer(){
+ $('#pHp .f').style.width=P.hp/P.max*100+'%';$('#pHp .n').textContent=P.hp+' / '+P.max;
+ $('#stats').innerHTML=[['Power',P.pow],['Armor',P.arm],['Crit',Math.round(P.crit*100)+'%'],['Resonance','+'+Math.round(P.casc*100)+'%'],['Luck',Math.round(P.gemC*100)+'%']].map(function(x){return '<div class="s"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join('')
+  +'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px">'+GL.map(function(g,i){var v=P.att[i];return '<span title="'+g.n+'" style="width:30px;text-align:center;font-size:10px;color:var(--faint);'+(v?'':'opacity:.25')+'">'+gsvg(i,'')+'&times;'+(1+v).toFixed(1)+'</span>'}).join('')+'</div>'}
+
+/* boot */
+function boot(){
+ board=$('#board');FX.init();
+ $('#tg').innerHTML=GL.map(function(_,i){return '<span style="display:block;width:34px;height:34px">'+gsvg(i)+'</span>'}).join('');
+ $('#tBest').textContent=best()?'Deepest descent: Depth '+roman(best()):'The depths await your first descent.';
+ $('#muteBtn').style.opacity=SFX.on?1:.4;
+ $('#muteBtn').onclick=function(){SFX.on=!SFX.on;store.set('azoth-mute',SFX.on?'0':'1');SFX.init();this.style.opacity=SFX.on?1:.4};
+ $('#helpBtn').onclick=function(){$('#help').classList.remove('hidden')};
+ $('#closeHelp').onclick=function(){$('#help').classList.add('hidden')};
+ window.addEventListener('keydown',function(e){if(e.key==='Escape')$('#help').classList.add('hidden')});
+ $('#startBtn').onclick=function(){SFX.init();startRun()};
+ $('#again').onclick=function(){SFX.init();startRun()};
+ $('#offers').onclick=function(e){
+  var b=e.target.closest('button[data-i]');if(!b||b.disabled)return;
+  var u=offers[+b.getAttribute('data-i')],c=upCost(u);if(P.gems<c)return;
+  P.gems-=c;P.own[u[0]]=(P.own[u[0]]||0)+1;u[4]();SFX.t(660,.1,'sine',.08);
+  log('Purchased <b>'+u[1]+'</b>.');renderHead();renderPlayer();renderShop()};
+ $('#reroll').onclick=function(){if(P.gems<rrCost())return;P.gems-=rrCost();renderHead();roll();renderShop()};
+ $('#leave').onclick=leaveShop;
+ initInput();
+ /* living backdrop behind the title screen */
+ P=newPlayer();S={slain:0,dmg:0,gems:0,moves:0};dName=pick(BIA)+' '+pick(BIB);
+ setMon(false);renderHead();renderPlayer();
+ $('#title').classList.remove('hidden'); /* the original never showed the title screen */
+}
+try{boot()}catch(e){document.body.insertAdjacentHTML('beforeend','<pre style="position:fixed;bottom:0;left:0;z-index:999;background:#2a0f0c;color:#ffb4a6;padding:8px">AZOTH error: '+e.message+'</pre>')}
+</script>
+</body>
+</html>
