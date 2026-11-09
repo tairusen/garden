@@ -26,6 +26,9 @@ vite.config.js          scans draft/ at build time:
                           - draft/explorer.json drives the explorer tree
                           - each page's <title> is its default explorer label
                           - draft pages redirect into the shell if opened directly
+                          - pages with a <div class="metadata"></div> get an
+                            auto (UPDATED date time) stamp inside it — pages
+                            without one (games, tools) are never touched
 .github/workflows/      build + deploy on push to main
 ```
 

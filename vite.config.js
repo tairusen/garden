@@ -242,11 +242,12 @@ function stampMeta(html, page) {
       return html;
     }
   }
-  const stamp = `<div class="meta">(UPDATED ${time})</div>`;
-  if (/<div class="meta">[\s\S]*?<\/div>/i.test(html)) {
-    return html.replace(/<div class="meta">[\s\S]*?<\/div>/i, stamp);
-  }
-  return html.replace(/<\/h1>/i, `</h1>\n${stamp}`);
+  // Opt-in only: the stamp is generated inside a <div class="metadata"> (its
+  // existing content is replaced). Pages without one — games, tools — are
+  // never touched, no matter what else their markup contains.
+  const re = /(<div[^>]*class="[^"]*\bmetadata\b[^"]*">)[\s\S]*?<\/div>/i;
+  if (!re.test(html)) return html;
+  return html.replace(re, `$1(UPDATED ${time})</div>`);
 }
 
 function gardenPlugin() {
@@ -332,7 +333,7 @@ function pageTemplate(title) {
     '<link rel="stylesheet" href="/src/content.css">\n' +
     '<script type="module" src="/src/links.js"></scr' + 'ipt>\n' +
     '</head>\n<body>\n' +
-    `<h1>${safeTitle}</h1>\n\n` +
+    `<h1>${safeTitle}</h1>\n<div class="metadata"></div>\n\n` +
     '<p>Start writing.</p>\n\n</body>\n</html>\n'
   );
 }
